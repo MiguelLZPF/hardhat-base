@@ -22,12 +22,6 @@ The structure follows a Hardhat project environment using **ethers**, **waffle**
     - [1.3.3. Upgradeable deployment](#133-upgradeable-deployment)
     - [1.3.4. Upgrade deployed Smart Contract](#134-upgrade-deployed-smart-contract)
   - [1.4. Unit Test](#14-unit-test)
-    - [1.4.1. Run ContractRegistry test](#141-run-contractregistry-test)
-    - [1.4.2. Run ContractDeployer test](#142-run-contractdeployer-test)
-    - [1.4.3. Run UpgradeableDeployer test](#143-run-upgradeabledeployer-test)
-  - [1.5. Results](#15-results)
-    - [1.5.1. Compilation](#151-compilation)
-    - [1.5.2. Tests (gas)](#152-tests-gas)
 
 ## 1.1. Custom Tasks added
 
@@ -279,25 +273,3 @@ npx hardhat upgrade ContractName --relative-path "/example.json" --password "PaS
 ## 1.4. Unit Test
 
 There is one unit test for each Smart Contract located in "test/{ContractName}.test.ts". It's tested the deployment, initialization and behavior. By default it does not store wallets.
-
-### 1.4.1. Run ContractRegistry test
-
-`npx hardhat test test/ContractRegistry.test.ts --network hardhat`
-
-### 1.4.2. Run ContractDeployer test
-
-`npx hardhat test test/ContractDeployer.test.ts --network hardhat`
-
-### 1.4.3. Run UpgradeableDeployer test
-
-`npx hardhat test test/UpgradeableDeployer.test.ts --network hardhat`
-
-## 1.5. Results
-
-### 1.5.1. Compilation
-
-![image](https://user-images.githubusercontent.com/10762009/183726040-dfc398ff-08b9-41cb-b0a7-855e15513680.png)
-
-### 1.5.2. Tests (gas)
-
-![image](https://user-images.githubusercontent.com/10762009/183726054-c65de528-4786-4fdc-920a-c8fdbf56fcbe.png)
