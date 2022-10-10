@@ -1,0 +1,22 @@
+{
+  "name": "hardhat-base",
+  "version": "1.0.0",
+  "description": "This is a base hardhat project for development, testing and deployment of Smart Contracts. It adds scripts and hardhat tasks for Off-Chain deployments.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test"
+  },
+  "author": "Miguel Gómez Carpena",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@openzeppelin/contracts": "^4.7.3",
+    "@types/chai": "^4.3.3",
+    "@types/node": "^18.8.3",
+    "chai": "^4.3.6",
+    "hardhat": "^2.11.2",
+    "async-file": "^2.0.2",
+    "ganache": "^7.4.4",
+    "hardhat-contract-sizer": "^2.6.1"
+  }
+}
