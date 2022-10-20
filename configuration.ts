@@ -1,4 +1,4 @@
-type Hardfork = 'london' | 'berlin' | 'byzantium';
+type Hardfork = "london" | "berlin" | "byzantium";
 
 /**
  * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
@@ -31,9 +31,12 @@ const KEYSTORE = {
 const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
-    evm: "berlin" as Hardfork,
+    evm: "london" as Hardfork,
     gasLimit: 800000,
     gasPrice: 0,
+    maxFeePerGas: 900000000,
+    maxPriorityFeePerGas: 100,
+    initialBaseFeePerGas: 7,
   },
   hardhat: {
     chainId: 31337,
@@ -52,7 +55,9 @@ const BLOCKCHAIN = {
 const GAS_OPT = {
   max: {
     gasLimit: BLOCKCHAIN.default.gasLimit,
-    gasPrice: BLOCKCHAIN.default.gasPrice,
+    // gasPrice: BLOCKCHAIN.default.gasPrice,
+    maxPriorityFeePerGas: BLOCKCHAIN.default.maxPriorityFeePerGas,
+    maxFeePerGas: BLOCKCHAIN.default.maxFeePerGas,
   },
 };
 
