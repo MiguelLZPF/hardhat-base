@@ -9,16 +9,35 @@ export interface INetwork {
 export const networks = new Map<number | undefined, INetwork>([
   [
     undefined,
-    { chainId: ENV.BLOCKCHAIN.hardhat.chainId, name: "hardhat", url: ENV.BLOCKCHAIN.hardhat.url },
+    {
+      chainId: ENV.BLOCKCHAIN.hardhat.chainId,
+      name: "hardhat",
+      url: `http://${ENV.BLOCKCHAIN.hardhat.hostname}:${ENV.BLOCKCHAIN.hardhat.port}`,
+    },
   ], // Default hardhat
-  [0, { chainId: ENV.BLOCKCHAIN.hardhat.chainId, name: "hardhat", url: ENV.BLOCKCHAIN.hardhat.url }], // Default hardhat
+  [
+    0,
+    {
+      chainId: ENV.BLOCKCHAIN.hardhat.chainId,
+      name: "hardhat",
+      url: `http://${ENV.BLOCKCHAIN.hardhat.hostname}:${ENV.BLOCKCHAIN.hardhat.port}`,
+    },
+  ], // Default hardhat
   [
     ENV.BLOCKCHAIN.hardhat.chainId,
-    { chainId: ENV.BLOCKCHAIN.hardhat.chainId, name: "hardhat", url: ENV.BLOCKCHAIN.hardhat.url },
+    {
+      chainId: ENV.BLOCKCHAIN.hardhat.chainId,
+      name: "hardhat",
+      url: `http://${ENV.BLOCKCHAIN.hardhat.hostname}:${ENV.BLOCKCHAIN.hardhat.port}`,
+    },
   ],
   [
     ENV.BLOCKCHAIN.ganache.chainId,
-    { chainId: ENV.BLOCKCHAIN.hardhat.chainId, name: "ganache", url: ENV.BLOCKCHAIN.ganache.url },
+    {
+      chainId: ENV.BLOCKCHAIN.hardhat.chainId,
+      name: "ganache",
+      url: `http://${ENV.BLOCKCHAIN.ganache.hostname}:${ENV.BLOCKCHAIN.ganache.port}`,
+    },
   ],
 ]);
 

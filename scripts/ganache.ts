@@ -5,7 +5,7 @@ import { BigNumber } from "ethers";
 const ganacheServer = ganache.server({
   chain: {
     chainId: ENV.BLOCKCHAIN.ganache.chainId,
-    hardfork: "berlin",
+    hardfork: ENV.BLOCKCHAIN.default.evm,
     vmErrorsOnRPCResponse: true,
   },
   miner: {
