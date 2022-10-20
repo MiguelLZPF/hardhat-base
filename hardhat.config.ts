@@ -9,7 +9,8 @@ import { ENV } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
 import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
-import { setGlobalHRE } from "./scripts/utils";
+import { logObject, setGlobalHRE } from "./scripts/utils";
+import { IGenerateWallets } from "./models/Tasks";
 
 //* TASKS
 task("generate-wallets", "Generates Encryped JSON persistent wallets")
@@ -46,8 +47,8 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
     undefined,
     types.int
   )
-  .setAction(async (taskArgs) => {
-    console.log(`Args: ${taskArgs}`);
+  .setAction(async (taskArgs: IGenerateWallets) => {
+    console.log(`Args: ${logObject(taskArgs)}`);
     if (taskArgs.type.toLowerCase() == "batch") {
       await generateWalletBatch(
         taskArgs.relativePath!,
@@ -260,7 +261,7 @@ task("quick-test", "Random quick testing function")
     setGlobalHRE(hre);
     // example: npx hardhat quick-test --args '[12, "hello"]'
     console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
-    console.log(ENV.KEYSTORE.default.password);
+    console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
   });
 
 //* Config
@@ -293,9 +294,9 @@ const config: HardhatUserConfig = {
       },
       loggingEnabled: false,
       mining: {
-        auto: false,
-        interval: [3000, 6000],
-        mempool: { order: "fifo" },
+        auto: true,
+        interval: [3000, 6000], // if auto is false then randomly generate blocks between 3 and 6 seconds
+        mempool: { order: "fifo" }, // [priority] change how transactions/blocks are procesed
       },
     },
     ganache: {

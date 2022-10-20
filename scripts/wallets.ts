@@ -69,7 +69,7 @@ export const generateWallet = async (
   let wallet: Wallet;
   if (privateKey) {
     wallet = new Wallet(privateKey);
-  } else if (mnemonic) {
+  } else if (mnemonic && mnemonic.phrase) {
     wallet = Wallet.fromMnemonic(mnemonic.phrase, mnemonic.path);
   } else {
     wallet = Wallet.createRandom({ extraEntropy: entropy });

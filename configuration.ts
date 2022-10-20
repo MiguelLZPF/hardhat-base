@@ -1,3 +1,5 @@
+type Hardfork = 'london' | 'berlin' | 'byzantium';
+
 /**
  * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
  * @param root the root directory
@@ -16,7 +18,7 @@ const KEYSTORE = {
     privateKey: "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d",
     mnemonic: {
       phrase: "myth like bonus scare over problem client lizard pioneer submit female collect",
-      path: "m/44'/60'/0'/0",
+      path: "m/44'/60'/0'/00",
       locale: "en",
     },
     batchSize: 2, // hardhat task default wallets to add to the keystore in batch mode
@@ -29,7 +31,7 @@ const KEYSTORE = {
 const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
-    evm: "berlin",
+    evm: "berlin" as Hardfork,
     gasLimit: 800000,
     gasPrice: 0,
   },
