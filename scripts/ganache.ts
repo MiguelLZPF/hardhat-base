@@ -16,7 +16,7 @@ const ganacheServer = ganache.server({
     mnemonic: ENV.KEYSTORE.default.mnemonic.phrase,
     hdPath: ENV.KEYSTORE.default.mnemonic.path,
     totalAccounts: ENV.KEYSTORE.default.accountNumber,
-    lock: true,
+    lock: false,
     passphrase: ENV.KEYSTORE.default.password,
     defaultBalance: BigNumber.from(ENV.KEYSTORE.default.balance).toNumber(),
   },

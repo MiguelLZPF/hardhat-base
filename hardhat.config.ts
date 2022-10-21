@@ -259,9 +259,13 @@ task("quick-test", "Random quick testing function")
   )
   .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
     setGlobalHRE(hre);
-    // example: npx hardhat quick-test --args '[12, "hello"]'
-    console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
+    if (args) {
+      // example: npx hardhat quick-test --args '[12, "hello"]'
+      console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
+    }
     console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
+    console.log("First account: ", await hre.ethers.provider.getSigner(0).getAddress());
+    console.log("First account balance: ", await hre.ethers.provider.getBalance(await hre.ethers.provider.getSigner(0).getAddress()));
   });
 
 //* Config
