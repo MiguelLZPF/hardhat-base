@@ -76,7 +76,7 @@ OPTIONS:
   --mnemonic-phrase     Mnemonic phrase to generate wallet from 
   --password            Wallet password 
   --private-key         Private key to generate wallet from. Hexadecimal String format expected 
-  --relative-path       Path relative to PATH_KEYSTORE_ROOT to store the wallets 
+  --relative-path       Path relative to KEYSTORE.root to store the wallets 
 
 POSITIONAL ARGUMENTS:
 
@@ -198,7 +198,7 @@ OPTIONS:
   --args                Contract initialize function's arguments if any
   --password            Password to decrypt the wallet
   --proxy-admin         Address of a deloyed Proxy Admin. Only if --upgradeable deployment
-  --relative-path       Path relative to KEYSTORE_ROOT to store the wallets
+  --relative-path       Path relative to KEYSTORE.root to store the wallets
   --tx-value            Contract creation transaction value if any
   --upgradeable         Deploy as upgradeable
 
@@ -250,7 +250,7 @@ OPTIONS:
   --password            Password to decrypt the wallet 
   --proxy               Address of the TUP proxy 
   --proxy-admin         Address of a deloyed Proxy Admin 
-  --relative-path       Path relative to KEYSTORE_ROOT to store the wallets 
+  --relative-path       Path relative to KEYSTORE.root to store the wallets 
 
 POSITIONAL ARGUMENTS:
 
