@@ -5,24 +5,32 @@ import { task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
 import { BigNumber, Contract, Wallet } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
-import { ENV } from "./configuration";
+import { BLOCKCHAIN, CONTRACT, DEPLOY, KEYSTORE } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
 import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
 import { logObject, setGlobalHRE } from "./scripts/utils";
-import { IGenerateWallets } from "./models/Tasks";
+import {
+  ICallContract,
+  IDeploy,
+  IGenerateWallets,
+  IGetMnemonic,
+  IGetWalletInfo,
+  IUpgrade,
+} from "./models/Tasks";
+import { connect } from "http2";
 
 //* TASKS
 task("generate-wallets", "Generates Encryped JSON persistent wallets")
   .addPositionalParam("type", "Type of generation [single, batch]", "single", types.string)
-  .addParam(
+  .addOptionalParam(
     "relativePath",
-    "Path relative to PATH_KEYSTORE_ROOT to store the wallets",
+    "Path relative to KEYSTORE.root to store the wallets",
     undefined,
     types.string
   )
   .addOptionalParam("password", "Wallet password", undefined, types.string)
-  .addOptionalParam("entropy", "Wallet entropy", undefined, types.string)
+  .addOptionalParam("entropy", "Wallet entropy for random generation", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "Private key to generate wallet from. Hexadecimal String format expected",
@@ -38,7 +46,13 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    undefined,
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
     types.string
   )
   .addOptionalParam(
@@ -47,62 +61,125 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
     undefined,
     types.int
   )
-  .setAction(async (taskArgs: IGenerateWallets) => {
-    console.log(`Args: ${logObject(taskArgs)}`);
-    if (taskArgs.type.toLowerCase() == "batch") {
+  .addFlag("connect", "If true, the wallet(s) will be automatically connected to the provider")
+  .setAction(async (args: IGenerateWallets, hre) => {
+    console.log(`Args: ${logObject(args)}`);
+    // if default keyword, use the default phrase
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    if (args.type.toLowerCase() == "batch") {
       await generateWalletBatch(
-        taskArgs.relativePath!,
-        taskArgs.password,
-        taskArgs.batchSize,
-        taskArgs.entropy ? Buffer.from(taskArgs.entropy) : undefined
+        args.relativePath,
+        args.password,
+        args.batchSize,
+        args.entropy ? Buffer.from(args.entropy) : undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
+        args.connect
       );
     } else {
       await generateWallet(
-        taskArgs.relativePath!,
-        taskArgs.password,
-        taskArgs.entropy ? Buffer.from(taskArgs.entropy) : undefined,
-        taskArgs.privateKey,
-        { phrase: taskArgs.mnemonicPhrase, path: taskArgs.mnemonicPath } as Mnemonic
+        args.relativePath,
+        args.password,
+        args.entropy ? Buffer.from(args.entropy) : undefined,
+        args.privateKey,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
+        args.connect
       );
     }
   });
 
-task("get-wallet-info", "Recover all information from an encrypted wallet")
-  .addPositionalParam("path", "Full path where the encrypted wallet is located")
-  .addOptionalPositionalParam("password", "Password to decrypt the wallet")
+task("get-wallet-info", "Recover all information from an encrypted wallet or an HD Wallet")
+  .addOptionalPositionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root where the encrypted wallet is located",
+    undefined,
+    types.string
+  )
+  .addOptionalPositionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
   .addFlag("showPrivate", "set to true if you want to show the private key and mnemonic phrase")
-  .setAction(async ({ path, password, showPrivate }, hre) => {
-    password = password ? password : ENV.KEYSTORE.default.password;
-    const wallet = Wallet.fromEncryptedJsonSync(await fs.readFile(path), password);
+  .setAction(async (args: IGetWalletInfo, hre) => {
+    // console.log(path, password, showPrivate);
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(undefined, undefined, undefined, undefined, {
+        phrase: args.mnemonicPhrase,
+        path: args.mnemonicPath,
+        locale: args.mnemonicLocale,
+      } as Mnemonic);
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password);
+    } else {
+      throw new Error("Cannot get a wallet from parameters, needed path or Mnemonic");
+    }
     let privateKey = wallet.privateKey;
     let mnemonic = wallet.mnemonic;
-    let mnemonicPhrase = mnemonic.phrase;
-    if (showPrivate != true) {
+    // needed because is read-only
+    args.mnemonicPhrase = mnemonic.phrase;
+    if (!args.showPrivate) {
       privateKey = "***********";
-      mnemonicPhrase = "***********";
+      args.mnemonicPhrase = "***********";
     }
     console.log(`
     Wallet information:
       - Address: ${wallet.address},
       - Public Key: ${wallet.publicKey},
       - Private Key: ${privateKey},
-      - Mnemonic: 
-        - Phrase: ${mnemonicPhrase},
+      - Mnemonic:
+        - Phrase: ${args.mnemonicPhrase},
         - Path: ${mnemonic.path}
+        - Locale: ${mnemonic.locale}
       - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)},
     `);
   });
 
 task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
-  .addPositionalParam("path", "Full path where the encrypted wallet is located")
+  .addPositionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root where the encrypted wallet is located",
+    undefined,
+    types.string
+  )
   .addOptionalPositionalParam(
     "password",
     "Password to decrypt the wallet",
-    ENV.KEYSTORE.default.password,
+    KEYSTORE.default.password,
     types.string
   )
-  .setAction(async ({ path, password }) => {
-    const wallet = Wallet.fromEncryptedJsonSync(await fs.readFile(path), password);
+  .setAction(async (args: IGetMnemonic) => {
+    const wallet = await decryptWallet(args.relativePath, args.password);
     console.log(wallet.mnemonic);
   });
 
@@ -111,49 +188,88 @@ task("deploy", "Deploy smart contracts on '--network'")
   .addPositionalParam(
     "contractName",
     "Name of the contract to deploy",
-    "Example_Contract",
+    CONTRACT[0].name,
     types.string
   )
-  .addParam(
+  .addOptionalParam(
     "relativePath",
-    "Path relative to KEYSTORE_ROOT to store the wallets",
+    "Path relative to KEYSTORE.root to store the wallets",
     undefined,
     types.string
   )
-  .addOptionalParam("password", "Password to decrypt the wallet")
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
   .addOptionalParam(
     "proxyAdmin",
     "Address of a deloyed Proxy Admin. Only if --upgradeable deployment",
-    undefined,
+    DEPLOY.proxyAdmin.address,
     types.string
   )
   .addOptionalParam(
-    "args",
+    "contractArgs",
     "Contract initialize function's arguments if any",
-    undefined,
+    [],
     types.json
   )
   .addOptionalParam("txValue", "Contract creation transaction value if any", undefined, types.int)
-  .setAction(
-    async (
-      { upgradeable, contractName, relativePath, password, proxyAdmin, args, txValue },
-      hre: HardhatRuntimeEnvironment
-    ) => {
-      args = args ? args : [];
-      await setGlobalHRE(hre);
-      await hre.run("compile");
-      const signer = await decryptWallet(
-        relativePath,
-        password || ENV.KEYSTORE.default.password,
+  .setAction(async (args: IDeploy, hre) => {
+    await setGlobalHRE(hre);
+    await hre.run("compile");
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
         true
       );
-      if (upgradeable) {
-        await deployUpgradeable(contractName, signer, args, txValue, proxyAdmin);
-      } else {
-        await deploy(contractName, signer, args, txValue);
-      }
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password, true);
+    } else {
+      throw new Error("Cannot get a wallet from parameters, needed path or Mnemonic");
     }
-  );
+    if (args.upgradeable) {
+      await deployUpgradeable(
+        args.contractName,
+        wallet,
+        args.contractArgs,
+        args.txValue,
+        args.proxyAdmin
+      );
+    } else {
+      await deploy(args.contractName, wallet, args.contractArgs, args.txValue);
+    }
+  });
 
 task("upgrade", "Upgrade smart contracts on '--network'")
   .addPositionalParam(
@@ -162,36 +278,74 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     "Example_Storage",
     types.string
   )
-  .addParam(
+  .addOptionalParam(
     "relativePath",
-    "Path relative to KEYSTORE_ROOT to store the wallets",
+    "Path relative to KEYSTORE.root to store the wallets",
     undefined,
     types.string
   )
-  .addOptionalParam("password", "Password to decrypt the wallet")
-  .addOptionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
-  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
   .addOptionalParam(
-    "args",
-    "Contract initialize function's arguments if any",
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
     undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
+  .addOptionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
+  .addOptionalParam(
+    "proxyAdmin",
+    "Address of a deloyed Proxy Admin",
+    DEPLOY.proxyAdmin.address,
+    types.string
+  )
+  .addOptionalParam(
+    "contractArgs",
+    "Contract initialize function's arguments if any",
+    [],
     types.json
   )
-  .setAction(
-    async (
-      { contractName, relativePath, password, proxy, proxyAdmin, args },
-      hre: HardhatRuntimeEnvironment
-    ) => {
-      args = args ? args : [];
-      setGlobalHRE(hre);
-      const signer = await decryptWallet(
-        relativePath,
-        password || ENV.KEYSTORE.default.password,
+  .setAction(async (args: IUpgrade, hre) => {
+    setGlobalHRE(hre);
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
         true
       );
-      await upgrade(contractName, signer, args, proxy, proxyAdmin);
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password, true);
+    } else {
+      throw new Error("Cannot get a wallet from parameters, needed path or Mnemonic");
     }
-  );
+    await upgrade(args.contractName, wallet, args.contractArgs, args.proxy, args.proxyAdmin);
+  });
 
 task("call-contract", "Call a contract function (this does not change contract storage or state)")
   .addPositionalParam(
@@ -207,47 +361,88 @@ task("call-contract", "Call a contract function (this does not change contract s
     types.string
   )
   .addPositionalParam("functionName", "the name of the function to call", undefined, types.string)
-  .addOptionalPositionalParam("args", "the arguments to pass to the function", [], types.json)
+  .addOptionalPositionalParam(
+    "functionArgs",
+    "the arguments to pass to the function",
+    [],
+    types.json
+  )
   .addOptionalParam("artifactPath", "the path to the artifact file", undefined, types.string)
   .addOptionalParam(
     "relativePath",
-    "Path relative to KEYSTORE_ROOT to retreive the wallet",
+    "Path relative to KEYSTORE.root to store the wallets",
     undefined,
     types.string
   )
-  .addOptionalParam("password", "Password to decrypt the wallet")
-  .setAction(
-    async (
-      { contractName, contractAddress, functionName, args, artifactPath, relativePath, password },
-      hre: HardhatRuntimeEnvironment
-    ) => {
-      setGlobalHRE(hre);
-      const artifact = JSON.parse(
-        await fs.readFile(
-          artifactPath || `artifacts/contracts/${contractName}.sol/${contractName}.json`
-        )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
+  .setAction(async (args: ICallContract, hre) => {
+    setGlobalHRE(hre);
+    const artifact = JSON.parse(
+      await fs.readFile(
+        args.artifactPath ||
+          `artifacts/contracts/${args.contractName}.sol/${args.contractName}.json`
+      )
+    );
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
+        true
       );
-      let signer: Wallet | undefined;
-      if (relativePath) {
-        signer = await decryptWallet(relativePath, password || ENV.KEYSTORE.default.password, true);
-      }
-      console.log(
-        `Calling Smart Contract ${contractName}.${functionName}(${args}) at ${contractAddress}...`
-      );
-      console.log(
-        "Result: ",
-        await new Contract(contractAddress, artifact.abi, signer || hre.ethers.provider).callStatic[
-          functionName
-        ](...args)
-      );
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password, true);
     }
-  );
+    console.log(
+      `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`
+    );
+    console.log(
+      "Result: ",
+      await new Contract(
+        args.contractAddress,
+        artifact.abi,
+        wallet || hre.ethers.provider
+      ).callStatic[args.functionName](...args.functionArgs)
+    );
+  });
 
 task("get-timestamp", "get the current timestamp in seconds")
-  .addOptionalParam("timeToAdd", "time to add to the timestamp in seconds", undefined, types.int)
+  .addOptionalParam("timeToAdd", "time to add to the timestamp in seconds", 0, types.int)
   .setAction(async ({ timeToAdd }, hre: HardhatRuntimeEnvironment) => {
     setGlobalHRE(hre);
-    console.log(Math.floor(Date.now() / 1000) + (timeToAdd || 0));
+    console.log(Math.floor(Date.now() / 1000) + timeToAdd);
   });
 
 task("quick-test", "Random quick testing function")
@@ -259,9 +454,16 @@ task("quick-test", "Random quick testing function")
   )
   .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
     setGlobalHRE(hre);
-    // example: npx hardhat quick-test --args '[12, "hello"]'
-    console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
+    if (args) {
+      // example: npx hardhat quick-test --args '[12, "hello"]'
+      console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
+    }
     console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
+    console.log("First account: ", await hre.ethers.provider.getSigner(0).getAddress());
+    console.log(
+      "First account balance: ",
+      await hre.ethers.provider.getBalance(await hre.ethers.provider.getSigner(0).getAddress())
+    );
   });
 
 //* Config
@@ -269,27 +471,27 @@ task("quick-test", "Random quick testing function")
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
   solidity: {
-    version: ENV.BLOCKCHAIN.default.solVersion,
+    version: BLOCKCHAIN.default.solVersion,
     settings: {
       // optimizer: {
       //   enabled: true,
       // },
-      evmVersion: ENV.BLOCKCHAIN.default.evm,
+      evmVersion: BLOCKCHAIN.default.evm,
     },
   },
   networks: {
     hardhat: {
-      chainId: ENV.BLOCKCHAIN.hardhat.chainId,
-      blockGasLimit: ENV.BLOCKCHAIN.default.gasLimit,
-      gasPrice: ENV.BLOCKCHAIN.default.gasPrice,
-      hardfork: ENV.BLOCKCHAIN.default.evm,
-      initialBaseFeePerGas: ENV.BLOCKCHAIN.default.initialBaseFeePerGas,
+      chainId: BLOCKCHAIN.hardhat.chainId,
+      blockGasLimit: BLOCKCHAIN.default.gasLimit,
+      gasPrice: BLOCKCHAIN.default.gasPrice,
+      hardfork: BLOCKCHAIN.default.evm,
+      initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
       accounts: {
-        mnemonic: ENV.KEYSTORE.default.mnemonic.phrase,
-        path: ENV.KEYSTORE.default.mnemonic.path,
-        count: ENV.KEYSTORE.default.accountNumber,
-        // passphrase: ENV.KEYSTORE.default.password,
-        accountsBalance: BigNumber.from(ENV.KEYSTORE.default.balance)
+        mnemonic: KEYSTORE.default.mnemonic.phrase,
+        path: KEYSTORE.default.mnemonic.path,
+        count: KEYSTORE.default.accountNumber,
+        // passphrase: KEYSTORE.default.password,
+        accountsBalance: BigNumber.from(KEYSTORE.default.balance)
           .mul(BigNumber.from("0x0de0b6b3a7640000"))
           .toString(),
       },
@@ -301,12 +503,12 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `http://${ENV.BLOCKCHAIN.ganache.hostname}:${ENV.BLOCKCHAIN.ganache.port}`,
-      chainId: ENV.BLOCKCHAIN.ganache.chainId,
-      blockGasLimit: ENV.BLOCKCHAIN.default.gasLimit,
-      gasPrice: ENV.BLOCKCHAIN.default.gasPrice,
-      hardfork: ENV.BLOCKCHAIN.default.evm,
-      initialBaseFeePerGas: ENV.BLOCKCHAIN.default.initialBaseFeePerGas,
+      url: `http://${BLOCKCHAIN.ganache.hostname}:${BLOCKCHAIN.ganache.port}`,
+      chainId: BLOCKCHAIN.ganache.chainId,
+      blockGasLimit: BLOCKCHAIN.default.gasLimit,
+      gasPrice: BLOCKCHAIN.default.gasPrice,
+      hardfork: BLOCKCHAIN.default.evm,
+      initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
     },
   },
   contractSizer: {

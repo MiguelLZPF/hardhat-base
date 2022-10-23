@@ -1,6 +1,6 @@
 import * as fs from "async-file";
 import util from "util";
-import { constants, BigNumber } from "ethers";
+import { constants } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
 import { INetwork, networks } from "../models/Deploy";
