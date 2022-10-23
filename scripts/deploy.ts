@@ -1,4 +1,4 @@
-import { ENV } from "../configuration";
+import { DEPLOY, GAS_OPT } from "../configuration";
 import { ghre } from "./utils";
 import * as fs from "async-file";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
@@ -32,7 +32,7 @@ export const deploy = async (
   const ethers = ghre.ethers;
   const factory = await ethers.getContractFactory(contractName, deployer);
   const contract = await (
-    await factory.deploy(...args, { ...ENV.GAS_OPT.max, value: txValue })
+    await factory.deploy(...args, { ...GAS_OPT.max, value: txValue })
   ).deployed();
   console.log(`
     Regular contract deployed:
@@ -69,25 +69,25 @@ export const deployUpgradeable = async (
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     proxyAdmin = (await ethers.getContractAt(
-      ENV.DEPLOY.proxyAdmin.name,
+      DEPLOY.proxyAdmin.name,
       proxyAdmin,
       deployer
     )) as ProxyAdmin;
   } else if (proxyAdmin && typeof proxyAdmin == "string") {
     throw new Error("String provided as Proxy Admin's address is not an address");
-  } else if (!proxyAdmin && ENV.DEPLOY.proxyAdmin.address) {
+  } else if (!proxyAdmin && DEPLOY.proxyAdmin.address) {
     proxyAdmin = (await ethers.getContractAt(
-      ENV.DEPLOY.proxyAdmin.name,
-      ENV.DEPLOY.proxyAdmin.address,
+      DEPLOY.proxyAdmin.name,
+      DEPLOY.proxyAdmin.address,
       deployer
     )) as ProxyAdmin;
   } else if (!proxyAdmin) {
     // deploy new Proxy Admin
     console.warn("WARN: no proxy admin provided, deploying new Proxy Admin");
-    proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(ENV.GAS_OPT.max)).deployed();
+    proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(GAS_OPT.max)).deployed();
     adminDeployment = {
       address: proxyAdmin.address,
-      contractName: ENV.DEPLOY.proxyAdmin.name,
+      contractName: DEPLOY.proxyAdmin.name,
       deployTimestamp: await getContractTimestamp(proxyAdmin),
       deployTxHash: proxyAdmin.deployTransaction.hash,
       byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
@@ -101,7 +101,7 @@ export const deployUpgradeable = async (
     : getProxyAdminDeployment(proxyAdmin.address);
   //* Actual contracts
   const factory = await ethers.getContractFactory(contractName, deployer);
-  const logic = await (await factory.deploy(ENV.GAS_OPT.max)).deployed();
+  const logic = await (await factory.deploy(GAS_OPT.max)).deployed();
   const timestamp = getContractTimestamp(logic);
   // -- encode function params for TUP
   let initData: string;
@@ -113,7 +113,7 @@ export const deployUpgradeable = async (
   //* TUP - Transparent Upgradeable Proxy
   const tuProxy = await (
     await new TUP__factory(deployer).deploy(logic.address, proxyAdmin.address, initData, {
-      ...ENV.GAS_OPT.max,
+      ...GAS_OPT.max,
       value: txValue,
     })
   ).deployed();
@@ -141,7 +141,7 @@ export const deployUpgradeable = async (
       ? await adminDeployment
       : {
           address: proxyAdmin.address,
-          contractName: ENV.DEPLOY.proxyAdmin.name,
+          contractName: DEPLOY.proxyAdmin.name,
           byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
         }
   );
@@ -170,7 +170,7 @@ export const upgrade = async (
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     // use given address as ProxyAdmin
     proxyAdmin = (await ethers.getContractAt(
-      ENV.DEPLOY.proxyAdmin.name,
+      DEPLOY.proxyAdmin.name,
       proxyAdmin,
       deployer
     )) as ProxyAdmin;
@@ -184,14 +184,14 @@ export const upgrade = async (
     // no proxy admin provided
     const contractDeployment = (await contractDeploymentP) as IUpgradeDeployment;
     proxyAdmin = (await ethers.getContractAt(
-      ENV.DEPLOY.proxyAdmin.name,
-      contractDeployment.admin ? contractDeployment.admin : ENV.DEPLOY.proxyAdmin.address!,
+      DEPLOY.proxyAdmin.name,
+      contractDeployment.admin ? contractDeployment.admin : DEPLOY.proxyAdmin.address!,
       deployer
     )) as ProxyAdmin;
   }
   //* Actual contracts
   const factory = await ethers.getContractFactory(contractName, deployer);
-  const newLogic = await (await factory.deploy(ENV.GAS_OPT.max)).deployed();
+  const newLogic = await (await factory.deploy(GAS_OPT.max)).deployed();
   const timestamp = getContractTimestamp(newLogic);
   // -- encode function params for TUP
   let initData: string;
@@ -211,12 +211,12 @@ export const upgrade = async (
         contractDeployment.proxy,
         newLogic.address,
         initData,
-        ENV.GAS_OPT.max
+        GAS_OPT.max
       )
     ).wait();
   } else {
     receipt = await (
-      await proxyAdmin.upgrade(contractDeployment.proxy, newLogic.address, ENV.GAS_OPT.max)
+      await proxyAdmin.upgrade(contractDeployment.proxy, newLogic.address, GAS_OPT.max)
     ).wait();
   }
   if (!receipt) {
@@ -305,7 +305,7 @@ export const saveDeployment = async (
   }
 
   // store/write deployments JSON file
-  await fs.writeFile(ENV.DEPLOY.deploymentsPath, JSON.stringify(deployments));
+  await fs.writeFile(DEPLOY.deploymentsPath, JSON.stringify(deployments));
 };
 
 /**
@@ -373,8 +373,8 @@ const getActualNetDeployment = async (hre?: HardhatRuntimeEnvironment) => {
   )!;
   let deployments: INetworkDeployment[] = [];
   // if the file exists, get previous data
-  if (await fs.exists(ENV.DEPLOY.deploymentsPath)) {
-    deployments = JSON.parse(await fs.readFile(ENV.DEPLOY.deploymentsPath));
+  if (await fs.exists(DEPLOY.deploymentsPath)) {
+    deployments = JSON.parse(await fs.readFile(DEPLOY.deploymentsPath));
   } else {
     console.warn("WARN: no deplyments file, createing a new one...");
   }

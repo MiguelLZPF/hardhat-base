@@ -9,7 +9,7 @@ type Hardfork = "london" | "berlin" | "byzantium";
  * @param test constants related to tests
  * @param test.userNumber number of users to create in tests
  */
-const KEYSTORE = {
+ export const KEYSTORE = {
   root: "keystore",
   default: {
     accountNumber: 10, // Ganache server default account number
@@ -28,7 +28,7 @@ const KEYSTORE = {
 /**
  * The BLOCKCHAIN environment constant group is used to agrupate the constants related to the blockchain network
  */
-const BLOCKCHAIN = {
+ export const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
     evm: "london" as Hardfork,
@@ -52,7 +52,7 @@ const BLOCKCHAIN = {
 };
 
 // default gas options to be used when sending Tx. It aims to zero gas price networks
-const GAS_OPT = {
+export const GAS_OPT = {
   max: {
     gasLimit: BLOCKCHAIN.default.gasLimit,
     // gasPrice: BLOCKCHAIN.default.gasPrice,
@@ -61,7 +61,7 @@ const GAS_OPT = {
   },
 };
 
-const DEPLOY = {
+export const DEPLOY = {
   deploymentsPath: "deployments.json",
   proxyAdmin: {
     name: "ProxyAdmin",
@@ -69,24 +69,17 @@ const DEPLOY = {
   },
 };
 
-const CONTRACT = {
-  exampleLock: {
+export const CONTRACT = [
+  {
     name: "Lock",
+    deployTxHash: "0x00",
   },
-  exampleUpgradeable: {
+  {
     name: "LockUpgr",
+    deployTxHash: "0x00"
   },
-};
+];
 
-const TEST = {
+export const TEST = {
   accountNumber: 10,
-};
-
-export const ENV = {
-  KEYSTORE,
-  BLOCKCHAIN,
-  GAS_OPT,
-  DEPLOY,
-  CONTRACT,
-  TEST,
 };

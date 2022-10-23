@@ -1,27 +1,27 @@
-import { ENV } from "../configuration";
+import { BLOCKCHAIN, KEYSTORE } from "../configuration";
 import ganache from "ganache";
 import { BigNumber } from "ethers";
 
 const ganacheServer = ganache.server({
   chain: {
-    chainId: ENV.BLOCKCHAIN.ganache.chainId,
-    hardfork: ENV.BLOCKCHAIN.default.evm,
+    chainId: BLOCKCHAIN.ganache.chainId,
+    hardfork: BLOCKCHAIN.default.evm,
     vmErrorsOnRPCResponse: true,
   },
   miner: {
-    blockGasLimit: ENV.BLOCKCHAIN.default.gasLimit,
-    defaultGasPrice: ENV.BLOCKCHAIN.default.gasPrice,
+    blockGasLimit: BLOCKCHAIN.default.gasLimit,
+    defaultGasPrice: BLOCKCHAIN.default.gasPrice,
   },
   wallet: {
-    mnemonic: ENV.KEYSTORE.default.mnemonic.phrase,
-    hdPath: ENV.KEYSTORE.default.mnemonic.path,
-    totalAccounts: ENV.KEYSTORE.default.accountNumber,
+    mnemonic: KEYSTORE.default.mnemonic.phrase,
+    hdPath: KEYSTORE.default.mnemonic.path,
+    totalAccounts: KEYSTORE.default.accountNumber,
     lock: false,
-    passphrase: ENV.KEYSTORE.default.password,
-    defaultBalance: BigNumber.from(ENV.KEYSTORE.default.balance).toNumber(),
+    passphrase: KEYSTORE.default.password,
+    defaultBalance: BigNumber.from(KEYSTORE.default.balance).toNumber(),
   },
   database: {
-    dbPath: ENV.BLOCKCHAIN.ganache.dbPath,
+    dbPath: BLOCKCHAIN.ganache.dbPath,
   },
   logging: {
     // quiet: true,
@@ -31,8 +31,8 @@ const ganacheServer = ganache.server({
 
 async function main() {
   try {
-    await ganacheServer.listen(ENV.BLOCKCHAIN.ganache.port);
-    console.log(`Ganache server listening on port ${ENV.BLOCKCHAIN.ganache.port}...`);
+    await ganacheServer.listen(BLOCKCHAIN.ganache.port);
+    console.log(`Ganache server listening on port ${BLOCKCHAIN.ganache.port}...`);
     const provider = ganacheServer.provider;
     console.log(
       "Chain: ",
