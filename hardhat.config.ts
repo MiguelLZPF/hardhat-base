@@ -18,7 +18,6 @@ import {
   IGetWalletInfo,
   IUpgrade,
 } from "./models/Tasks";
-import { connect } from "http2";
 
 //* TASKS
 task("generate-wallets", "Generates Encryped JSON persistent wallets")
