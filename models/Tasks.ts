@@ -36,6 +36,7 @@ export interface IDeploy {
   mnemonicLocale: string;
   proxyAdmin: string;
   contractArgs: any;
+  noCompile: boolean;
   txValue: number;
 }
 
@@ -49,6 +50,7 @@ export interface IUpgrade {
   proxy: string;
   proxyAdmin: string;
   contractArgs: any;
+  noCompile: boolean;
 }
 
 export interface ICallContract {
