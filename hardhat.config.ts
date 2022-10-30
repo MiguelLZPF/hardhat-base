@@ -232,10 +232,13 @@ task("deploy", "Deploy smart contracts on '--network'")
     [],
     types.json
   )
+  .addFlag("noCompile", "Do not compile contracts before deploy")
   .addOptionalParam("txValue", "Contract creation transaction value if any", undefined, types.int)
   .setAction(async (args: IDeploy, hre) => {
     await setGlobalHRE(hre);
-    await hre.run("compile");
+    if (!args.noCompile) {
+      await hre.run("compile");
+    }
     args.mnemonicPhrase =
       args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
     let wallet: Wallet | undefined;
@@ -320,8 +323,12 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     [],
     types.json
   )
+  .addFlag("noCompile", "Do not compile contracts before upgrade")
   .setAction(async (args: IUpgrade, hre) => {
     setGlobalHRE(hre);
+    if (!args.noCompile) {
+      await hre.run("compile");
+    }
     args.mnemonicPhrase =
       args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
     let wallet: Wallet | undefined;
