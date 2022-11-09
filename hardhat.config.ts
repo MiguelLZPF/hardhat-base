@@ -8,7 +8,7 @@ import { Mnemonic } from "ethers/lib/utils";
 import { BLOCKCHAIN, CONTRACT, DEPLOY, KEYSTORE } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
-import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
+import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "./scripts/deploy";
 import { logObject, setGlobalHRE } from "./scripts/utils";
 import {
   ICallContract,
@@ -182,6 +182,7 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
     console.log(wallet.mnemonic);
   });
 
+// DEPLOYMENTS
 task("deploy", "Deploy smart contracts on '--network'")
   .addFlag("upgradeable", "Deploy as upgradeable")
   .addPositionalParam(
@@ -444,6 +445,92 @@ task("call-contract", "Call a contract function (this does not change contract s
     );
   });
 
+task(
+  "get-logic",
+  "Check what logic|implementation smart contract address is currently using a given proxy"
+)
+  .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
+  .addOptionalParam(
+    "proxyAdmin",
+    "Address of a deloyed Proxy Admin",
+    DEPLOY.proxyAdmin,
+    types.string
+  )
+  .setAction(
+    async ({ proxy, proxyAdmin}, hre: HardhatRuntimeEnvironment) => {
+      setGlobalHRE(hre);
+
+      const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } = await getLogic(
+        proxy,
+        proxyAdmin,
+        hre
+      );
+
+      console.log(`
+          Logic contract information:
+            - Logic (from Proxy): ${logicFromProxy}
+            - Admin (from Proxy): ${adminFromProxy}
+            - Logic (from Admin): ${logicFromAdmin}
+            - Admin (from Admin): ${adminFromAdmin}
+        `);
+    }
+  );
+
+task("change-logic", "change the actual logic|implementation smart contract of a TUP proxy")
+  .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
+  .addOptionalParam(
+    "proxyAdmin",
+    "Address of a deloyed Proxy Admin",
+    DEPLOY.proxyAdmin,
+    types.string
+  )
+  .addParam(
+    "newLogic",
+    "Address of the new logic|implementation contract",
+    DEPLOY.proxyAdmin,
+    types.string
+  )
+  .addParam(
+    "relativePath",
+    "Path relative to KEYSTORE_ROOT to store the wallets",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .setAction(
+    async (
+      { proxy, proxyAdmin, newLogic, relativePath, password },
+      hre: HardhatRuntimeEnvironment
+    ) => {
+      setGlobalHRE(hre);
+
+      const signer = Wallet.fromEncryptedJsonSync(
+        await fs.readFile(KEYSTORE.root.concat(relativePath)),
+        password
+      ).connect(hre.ethers.provider);
+
+      const { previousLogic, actualLogic, receipt } = await changeLogic(
+        proxy,
+        proxyAdmin,
+        newLogic,
+        signer
+      );
+      console.log(`
+          Logic changed successfully:
+            - Previous Logic: ${previousLogic}
+            - Actual Logic: ${actualLogic}
+            - Transaction: ${receipt.transactionHash}
+            - Block: ${receipt.blockHash}
+        `);
+    }
+  );
+
+// OTHER
 task("get-timestamp", "get the current timestamp in seconds")
   .addOptionalParam("timeToAdd", "time to add to the timestamp in seconds", 0, types.int)
   .setAction(async ({ timeToAdd }, hre: HardhatRuntimeEnvironment) => {

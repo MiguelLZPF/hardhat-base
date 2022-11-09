@@ -103,6 +103,9 @@ export const deployUpgradeable = async (
   const factory = await ethers.getContractFactory(contractName, deployer);
   const logic = await (await factory.deploy(GAS_OPT.max)).deployed();
   const timestamp = getContractTimestamp(logic);
+  if (!logic || !logic.address) {
+    throw new Error("Logic|Implementation not deployed properly");
+  }
   // -- encode function params for TUP
   let initData: string;
   if (args.length > 0) {
@@ -117,6 +120,9 @@ export const deployUpgradeable = async (
       value: txValue,
     })
   ).deployed();
+  if (!tuProxy || !tuProxy.address) {
+    throw new Error("Proxy|Storage not deployed properly");
+  }
 
   console.log(`
     Upgradeable contract deployed:
@@ -193,6 +199,10 @@ export const upgrade = async (
   const factory = await ethers.getContractFactory(contractName, deployer);
   const newLogic = await (await factory.deploy(GAS_OPT.max)).deployed();
   const timestamp = getContractTimestamp(newLogic);
+  if (!newLogic || !newLogic.address) {
+    throw new Error("Logic|Implementation not deployed properly");
+  }
+
   // -- encode function params for TUP
   let initData: string;
   if (args.length > 0) {
@@ -202,10 +212,17 @@ export const upgrade = async (
   }
   //* TUP - Transparent Upgradeable Proxy
   const contractDeployment = (await contractDeploymentP) as IUpgradeDeployment;
+  // Previous Logic
+  const previousLogic: Promise<string> = proxyAdmin.getProxyImplementation(
+    contractDeployment.proxy
+  );
   let receipt: ContractReceipt;
   if (!contractDeployment.proxy) {
     throw new Error("ERROR: contract retrieved is not upgradeable");
   } else if (args.length > 0) {
+    console.log(
+      `Performing upgrade and call from ${proxyAdmin.address} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogic.address}`
+    );
     receipt = await (
       await proxyAdmin.upgradeAndCall(
         contractDeployment.proxy,
@@ -215,20 +232,32 @@ export const upgrade = async (
       )
     ).wait();
   } else {
+    console.log(
+      `Performing upgrade from ${proxyAdmin.address} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogic.address}`
+    );
     receipt = await (
       await proxyAdmin.upgrade(contractDeployment.proxy, newLogic.address, GAS_OPT.max)
     ).wait();
   }
   if (!receipt) {
-    throw new Error("ERROR: Failed to upgrade, No Receipt");
+    throw new Error("Transaction execution failed. Undefined Receipt");
+  }
+  const newLogicFromAdmin: Promise<string> = proxyAdmin.getProxyImplementation(
+    contractDeployment.proxy
+  );
+  if ((await newLogicFromAdmin) == (await previousLogic)) {
+    throw new Error("Upgrade failed. Previous address and new one are the same");
+  }
+  if ((await newLogicFromAdmin) != newLogic.address) {
+    throw new Error("Upgrade failed. Logic addresess does not match");
   }
 
   console.log(`
     Contract upgraded:
-      - Proxy Admin: ${proxyAdmin.address},
-      - Proxy: ${contractDeployment.proxy},
-      - Previous Logic: ${contractDeployment.logic}
-      - New Logic: ${newLogic.address}
+      - Proxy Admin: ${proxyAdmin.address}
+      - Proxy: ${contractDeployment.proxy}
+      - Previous Logic: ${await previousLogic}
+      - New Logic: ${await newLogicFromAdmin}
       - Arguments: ${args}
   `);
   // store deployment information
@@ -238,6 +267,66 @@ export const upgrade = async (
   contractDeployment.byteCodeHash = keccak256(factory.bytecode);
   contractDeployment.upgradeTimestamp = await timestamp;
   await saveDeployment(contractDeployment);
+};
+
+export const getLogic = async (
+  proxy: string,
+  proxyAdmin: string,
+  hre: HardhatRuntimeEnvironment = ghre
+) => {
+  // instanciate the ProxyAdmin
+  const proxyAdminContract = new Contract(
+    proxyAdmin,
+    ProxyAdmin__factory.abi,
+    hre.ethers.provider
+  ) as ProxyAdmin;
+
+  const callResults = await Promise.all([
+    // get actual logic address directly from the proxy's storage
+    hre.ethers.provider.getStorageAt(
+      proxy,
+      "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
+    ),
+    // get actual admin address directly from the proxy's storage'
+    hre.ethers.provider.getStorageAt(
+      proxy,
+      "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+    ),
+    // get actual logic address from ProxyAdmin
+    proxyAdminContract.getProxyImplementation(proxy),
+    // get actual admin address from ProxyAdmin
+    proxyAdminContract.getProxyAdmin(proxy),
+  ]);
+
+  // return as an object
+  return {
+    logicFromProxy: callResults[0],
+    adminFromProxy: callResults[1],
+    logicFromAdmin: callResults[2],
+    adminFromAdmin: callResults[3],
+  };
+};
+
+export const changeLogic = async (
+  proxy: string,
+  proxyAdmin: string,
+  newLogic: string,
+  signer: Signer
+) => {
+  // instanciate the ProxyAdmin
+  const proxyAdminContract = new Contract(
+    proxyAdmin,
+    ProxyAdmin__factory.abi,
+    signer
+  ) as ProxyAdmin;
+  // Get logic|implementation address
+  const previousLogic = proxyAdminContract.getProxyImplementation(proxy);
+  // Change logic contract
+  const receipt = await (await proxyAdminContract.upgrade(proxy, newLogic, GAS_OPT.max)).wait();
+  // Get logic|implementation address
+  const actualLogic = proxyAdminContract.getProxyImplementation(proxy);
+
+  return { previousLogic, actualLogic, receipt };
 };
 
 /**
