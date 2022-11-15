@@ -65,3 +65,19 @@ export interface ICallContract {
   mnemonicPath: string;
   mnemonicLocale: string;
 }
+
+export interface IGetLogic {
+  proxy: string;
+  proxyAdmin?: string;
+}
+
+export interface IChangeLogic {
+  proxy: string;
+  proxyAdmin?: string;
+  newLogic: string;
+  relativePath?: string;
+  password: string;
+  mnemonicPhrase?: string;
+  mnemonicPath: string;
+  mnemonicLocale: string;
+}

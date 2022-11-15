@@ -1,1 +1,47 @@
-[{"network":{"name":"ganache","chainId":69},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab","contractName":"Lock","deployTimestamp":"2022-09-07T20:10:12.000Z","deployTxHash":"0x41f6821d6580b832336ea77ecb426b431f7f340ec84c82a59a503dd159186951","byteCodeHash":"0xf4adb945a98d6abdb7abc18a7cb2619f3658fd4ccddb643e5b629adc336fd73f"}]}},{"network":{"name":"hardhat","chainId":31337},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab","contractName":"Lock","deployTimestamp":"2022-09-16T19:03:17.000Z","deployTxHash":"0x086908484bceafb7ff84c7bebdd143bab96881ecbc8d4ff0d5b673b6cd02acd8","byteCodeHash":"0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"}]}},{"network":{"name":"ganache","chainId":31337},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0x5b1869D9A4C187F2EAa108f3062412ecf0526b24","contractName":"Lock","deployTimestamp":"2022-09-16T19:18:28.000Z","deployTxHash":"0x958a2f3bd2cca70ef851c15530e236bb2a61188ea1d1d7fcf7800b118251c93b","byteCodeHash":"0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"}]}}]
+[
+  {
+    "network": { "name": "ganache", "chainId": 69 },
+    "smartContracts": {
+      "proxyAdmins": [],
+      "contracts": [
+        {
+          "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+          "contractName": "Lock",
+          "deployTimestamp": "2022-09-07T20:10:12.000Z",
+          "deployTxHash": "0x41f6821d6580b832336ea77ecb426b431f7f340ec84c82a59a503dd159186951",
+          "byteCodeHash": "0xf4adb945a98d6abdb7abc18a7cb2619f3658fd4ccddb643e5b629adc336fd73f"
+        }
+      ]
+    }
+  },
+  {
+    "network": { "name": "hardhat", "chainId": 31337 },
+    "smartContracts": {
+      "proxyAdmins": [],
+      "contracts": [
+        {
+          "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+          "contractName": "Lock",
+          "deployTimestamp": "2022-09-16T19:03:17.000Z",
+          "deployTxHash": "0x086908484bceafb7ff84c7bebdd143bab96881ecbc8d4ff0d5b673b6cd02acd8",
+          "byteCodeHash": "0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"
+        }
+      ]
+    }
+  },
+  {
+    "network": { "name": "ganache", "chainId": 31337 },
+    "smartContracts": {
+      "proxyAdmins": [],
+      "contracts": [
+        {
+          "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+          "contractName": "Lock",
+          "deployTimestamp": "2022-09-16T19:18:28.000Z",
+          "deployTxHash": "0x958a2f3bd2cca70ef851c15530e236bb2a61188ea1d1d7fcf7800b118251c93b",
+          "byteCodeHash": "0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"
+        }
+      ]
+    }
+  }
+]

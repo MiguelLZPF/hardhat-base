@@ -12,8 +12,10 @@ import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "./scr
 import { logObject, setGlobalHRE } from "./scripts/utils";
 import {
   ICallContract,
+  IChangeLogic,
   IDeploy,
   IGenerateWallets,
+  IGetLogic,
   IGetMnemonic,
   IGetWalletInfo,
   IUpgrade,
@@ -153,14 +155,14 @@ task("get-wallet-info", "Recover all information from an encrypted wallet or an 
     }
     console.log(`
     Wallet information:
-      - Address: ${wallet.address},
-      - Public Key: ${wallet.publicKey},
-      - Private Key: ${privateKey},
+      - Address: ${wallet.address}
+      - Public Key: ${wallet.publicKey}
+      - Private Key: ${privateKey}
       - Mnemonic:
-        - Phrase: ${args.mnemonicPhrase},
+        - Phrase: ${args.mnemonicPhrase}
         - Path: ${mnemonic.path}
         - Locale: ${mnemonic.locale}
-      - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)},
+      - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)}
     `);
   });
 
@@ -179,7 +181,12 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
   )
   .setAction(async (args: IGetMnemonic) => {
     const wallet = await decryptWallet(args.relativePath, args.password);
-    console.log(wallet.mnemonic);
+    console.log(`
+      - Mnemonic:
+        - Phrase: ${wallet.mnemonic.phrase}
+        - Path: ${wallet.mnemonic.path}
+        - Locale: ${wallet.mnemonic.locale}
+    `);
   });
 
 // DEPLOYMENTS
@@ -275,12 +282,8 @@ task("deploy", "Deploy smart contracts on '--network'")
   });
 
 task("upgrade", "Upgrade smart contracts on '--network'")
-  .addPositionalParam(
-    "contractName",
-    "Name of the contract to deploy",
-    "Example_Storage",
-    types.string
-  )
+  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
+  .addPositionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
   .addOptionalParam(
     "relativePath",
     "Path relative to KEYSTORE.root to store the wallets",
@@ -311,7 +314,6 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     KEYSTORE.default.mnemonic.locale,
     types.string
   )
-  .addOptionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
   .addOptionalParam(
     "proxyAdmin",
     "Address of a deloyed Proxy Admin",
@@ -450,49 +452,32 @@ task(
   "Check what logic|implementation smart contract address is currently using a given proxy"
 )
   .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
-  .addOptionalParam(
-    "proxyAdmin",
-    "Address of a deloyed Proxy Admin",
-    DEPLOY.proxyAdmin,
-    types.string
-  )
-  .setAction(
-    async ({ proxy, proxyAdmin}, hre: HardhatRuntimeEnvironment) => {
-      setGlobalHRE(hre);
+  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
+  .setAction(async (args: IGetLogic, hre: HardhatRuntimeEnvironment) => {
+    setGlobalHRE(hre);
 
-      const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } = await getLogic(
-        proxy,
-        proxyAdmin,
-        hre
-      );
+    const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } = await getLogic(
+      args.proxy,
+      args.proxyAdmin,
+      hre
+    );
 
-      console.log(`
+    console.log(`
           Logic contract information:
             - Logic (from Proxy): ${logicFromProxy}
             - Admin (from Proxy): ${adminFromProxy}
             - Logic (from Admin): ${logicFromAdmin}
             - Admin (from Admin): ${adminFromAdmin}
         `);
-    }
-  );
+  });
 
 task("change-logic", "change the actual logic|implementation smart contract of a TUP proxy")
   .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
+  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
+  .addParam("newLogic", "Address of the new logic|implementation contract", undefined, types.string)
   .addOptionalParam(
-    "proxyAdmin",
-    "Address of a deloyed Proxy Admin",
-    DEPLOY.proxyAdmin,
-    types.string
-  )
-  .addParam(
-    "newLogic",
-    "Address of the new logic|implementation contract",
-    DEPLOY.proxyAdmin,
-    types.string
-  )
-  .addParam(
     "relativePath",
-    "Path relative to KEYSTORE_ROOT to store the wallets",
+    "Path relative to KEYSTORE.root to store the wallets",
     undefined,
     types.string
   )
@@ -502,33 +487,63 @@ task("change-logic", "change the actual logic|implementation smart contract of a
     KEYSTORE.default.password,
     types.string
   )
-  .setAction(
-    async (
-      { proxy, proxyAdmin, newLogic, relativePath, password },
-      hre: HardhatRuntimeEnvironment
-    ) => {
-      setGlobalHRE(hre);
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
+  .setAction(async (args: IChangeLogic, hre: HardhatRuntimeEnvironment) => {
+    setGlobalHRE(hre);
 
-      const signer = Wallet.fromEncryptedJsonSync(
-        await fs.readFile(KEYSTORE.root.concat(relativePath)),
-        password
-      ).connect(hre.ethers.provider);
-
-      const { previousLogic, actualLogic, receipt } = await changeLogic(
-        proxy,
-        proxyAdmin,
-        newLogic,
-        signer
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: args.mnemonicPath,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
+        true
       );
-      console.log(`
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password, true);
+    } else {
+      throw new Error("ERROR: signer required to perform this task");
+    }
+
+    const { previousLogic, actualLogic, receipt } = await changeLogic(
+      args.proxy,
+      args.newLogic,
+      wallet!,
+      args.proxyAdmin
+    );
+    console.log(`
           Logic changed successfully:
             - Previous Logic: ${previousLogic}
             - Actual Logic: ${actualLogic}
             - Transaction: ${receipt.transactionHash}
             - Block: ${receipt.blockHash}
         `);
-    }
-  );
+  });
 
 // OTHER
 task("get-timestamp", "get the current timestamp in seconds")

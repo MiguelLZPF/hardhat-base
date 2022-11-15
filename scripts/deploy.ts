@@ -15,6 +15,8 @@ import {
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory as TUP__factory,
 } from "../typechain-types";
+import yesno from "yesno";
+import { PromiseOrValue } from "../typechain-types/common";
 
 /**
  * Performs a regular deployment and updates the deployment information in deployments JSON file
@@ -59,9 +61,9 @@ export const deploy = async (
 export const deployUpgradeable = async (
   contractName: string,
   deployer: Signer,
-  args: unknown[],
+  args: unknown[] = [],
   txValue = 0,
-  proxyAdmin?: string | ProxyAdmin
+  proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address
 ) => {
   const ethers = ghre.ethers;
   //* Proxy Admin
@@ -75,23 +77,32 @@ export const deployUpgradeable = async (
     )) as ProxyAdmin;
   } else if (proxyAdmin && typeof proxyAdmin == "string") {
     throw new Error("String provided as Proxy Admin's address is not an address");
-  } else if (!proxyAdmin && DEPLOY.proxyAdmin.address) {
-    proxyAdmin = (await ethers.getContractAt(
-      DEPLOY.proxyAdmin.name,
-      DEPLOY.proxyAdmin.address,
-      deployer
-    )) as ProxyAdmin;
   } else if (!proxyAdmin) {
-    // deploy new Proxy Admin
-    console.warn("WARN: no proxy admin provided, deploying new Proxy Admin");
-    proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(GAS_OPT.max)).deployed();
-    adminDeployment = {
-      address: proxyAdmin.address,
-      contractName: DEPLOY.proxyAdmin.name,
-      deployTimestamp: await getContractTimestamp(proxyAdmin),
-      deployTxHash: proxyAdmin.deployTransaction.hash,
-      byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
-    };
+    const firstDeployedAdmin = await getProxyAdminDeployment();
+    if (firstDeployedAdmin && firstDeployedAdmin.address) {
+      // use the first existant proxy admin deployment
+      proxyAdmin = (await ethers.getContractAt(
+        DEPLOY.proxyAdmin.name,
+        firstDeployedAdmin.address,
+        deployer
+      )) as ProxyAdmin;
+    } else {
+      // deploy new Proxy Admin
+      const ok = await yesno({
+        question: "No ProxyAdmin provided. Do you want to deploy a new Proxy Admin?",
+      });
+      if (!ok) {
+        throw new Error("Deployment aborted");
+      }
+      proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(GAS_OPT.max)).deployed();
+      adminDeployment = {
+        address: proxyAdmin.address,
+        contractName: DEPLOY.proxyAdmin.name,
+        deployTimestamp: await getContractTimestamp(proxyAdmin),
+        deployTxHash: proxyAdmin.deployTransaction.hash,
+        byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
+      };
+    }
   } else {
     // proxy admin given as Contract
     proxyAdmin = proxyAdmin as ProxyAdmin;
@@ -155,23 +166,23 @@ export const deployUpgradeable = async (
 
 /**
  * Upgrades the logic Contract of an upgradeable deployment and updates the deployment information in deployments JSON file
- * @param contractName name of the contract to be upgraded
+ * @param contractName name of the contract to be upgraded (main use: get factory)
  * @param deployer signer used to sign transacciations
  * @param args arguments to use in the initializer
- * @param proxy (optional ? undefined) address to identifie multiple contracts with the same name and network
- * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
+ * @param proxy (optional) [undefined] address to identifie multiple contracts with the same name and network
+ * @param proxyAdmin (optional) [ROXY_ADMIN_ADDRESS] custom proxy admin address
  */
 export const upgrade = async (
   contractName: string,
   deployer: Signer,
   args: unknown[],
-  proxy?: string,
+  proxy: string,
   proxyAdmin?: string | ProxyAdmin
 ) => {
   const ethers = ghre.ethers;
-  const contractDeploymentP = proxy
-    ? (getContractDeployment(proxy) as Promise<IUpgradeDeployment>)
-    : (getContractDeployment(contractName) as Promise<IUpgradeDeployment>);
+  let contractDeployment: PromiseOrValue<IUpgradeDeployment> = getContractDeployment(
+    proxy
+  ) as Promise<IUpgradeDeployment>;
   //* Proxy Admin
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     // use given address as ProxyAdmin
@@ -188,10 +199,14 @@ export const upgrade = async (
     proxyAdmin = proxyAdmin as ProxyAdmin;
   } else {
     // no proxy admin provided
-    const contractDeployment = (await contractDeploymentP) as IUpgradeDeployment;
+    if (!(await contractDeployment).admin) {
+      throw new Error(`ERROR: No proxy deployment found for proxy address: ${proxy}`);
+    }
     proxyAdmin = (await ethers.getContractAt(
       DEPLOY.proxyAdmin.name,
-      contractDeployment.admin ? contractDeployment.admin : DEPLOY.proxyAdmin.address!,
+      (
+        await contractDeployment
+      ).admin,
       deployer
     )) as ProxyAdmin;
   }
@@ -211,7 +226,7 @@ export const upgrade = async (
     initData = factory.interface._encodeParams([], []);
   }
   //* TUP - Transparent Upgradeable Proxy
-  const contractDeployment = (await contractDeploymentP) as IUpgradeDeployment;
+  contractDeployment = await contractDeployment;
   // Previous Logic
   const previousLogic: Promise<string> = proxyAdmin.getProxyImplementation(
     contractDeployment.proxy
@@ -271,12 +286,12 @@ export const upgrade = async (
 
 export const getLogic = async (
   proxy: string,
-  proxyAdmin: string,
+  proxyAdmin?: string,
   hre: HardhatRuntimeEnvironment = ghre
 ) => {
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
-    proxyAdmin,
+    proxyAdmin || (await getProxyAdminDeployment(proxy))!.address,
     ProxyAdmin__factory.abi,
     hre.ethers.provider
   ) as ProxyAdmin;
@@ -309,13 +324,13 @@ export const getLogic = async (
 
 export const changeLogic = async (
   proxy: string,
-  proxyAdmin: string,
   newLogic: string,
-  signer: Signer
+  signer: Signer,
+  proxyAdmin?: string
 ) => {
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
-    proxyAdmin,
+    proxyAdmin || (await getProxyAdminDeployment(proxy))!.address,
     ProxyAdmin__factory.abi,
     signer
   ) as ProxyAdmin;
@@ -399,21 +414,33 @@ export const saveDeployment = async (
 
 /**
  * Gets a Proxy Admin Deployment from a Network Deployment from deployments JSON file
- * @param address address that identifies a Proxy Admin in a network deployment
+ * @param adminAddress address that identifies a Proxy Admin in a network deployment
  * @returns Proxy Admin Deployment object
  */
-const getProxyAdminDeployment = async (address?: string) => {
+const getProxyAdminDeployment = async (proxy?: string, adminAddress?: string) => {
   const { networkIndex, netDeployment, deployments } = await getActualNetDeployment();
 
   if (networkIndex == undefined || !netDeployment) {
     throw new Error("ERROR: there is no deployment for this network");
   } else if (netDeployment.smartContracts.proxyAdmins) {
-    if (address && isAddress(address)) {
-      return netDeployment.smartContracts.proxyAdmins?.find(
-        (proxyAdmin) => proxyAdmin.address === address
+    if (proxy && isAddress(proxy)) {
+      // if the proxy address is given, get the proxy deployment to get the associated proxyAdmin
+      const proxyDep = netDeployment.smartContracts.contracts.find(
+        (deployment) => (deployment as IUpgradeDeployment).proxy === proxy
       );
-    } else if (address) {
-      throw new Error("String provided as Proxy Admin's address is not an address");
+      if (!proxyDep) {
+        throw new Error(`ERROR: there is no deployment that match ${proxy} proxy for this network`);
+      }
+      return netDeployment.smartContracts.proxyAdmins?.find(
+        (proxyAdmin) => proxyAdmin.address === (proxyDep as IUpgradeDeployment).admin
+      );
+    } else if (adminAddress && isAddress(adminAddress)) {
+      // if the proxyAdmin address is given, get this proxyAdmin
+      return netDeployment.smartContracts.proxyAdmins?.find(
+        (proxyAdmin) => proxyAdmin.address === adminAddress
+      );
+    } else if (proxy || adminAddress) {
+      throw new Error("String provided as an address is not an address");
     } else {
       // no address, get first Proxy Admin
       return netDeployment.smartContracts.proxyAdmins[0];
