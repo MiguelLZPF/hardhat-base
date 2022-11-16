@@ -47,7 +47,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
+    undefined,
     types.string
   )
   .addOptionalParam(
@@ -64,7 +64,6 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
   )
   .addFlag("connect", "If true, the wallet(s) will be automatically connected to the provider")
   .setAction(async (args: IGenerateWallets, hre) => {
-    console.log(`Args: ${logObject(args)}`);
     // if default keyword, use the default phrase
     args.mnemonicPhrase =
       args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
@@ -76,7 +75,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
         args.entropy ? Buffer.from(args.entropy) : undefined,
         {
           phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
+          path: args.mnemonicPath || KEYSTORE.default.mnemonic.basePath,
           locale: args.mnemonicLocale,
         } as Mnemonic,
         args.connect
@@ -89,7 +88,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
         args.privateKey,
         {
           phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
+          path: args.mnemonicPath || KEYSTORE.default.mnemonic.path,
           locale: args.mnemonicLocale,
         } as Mnemonic,
         args.connect
@@ -519,7 +518,7 @@ task("change-logic", "change the actual logic|implementation smart contract of a
         undefined,
         {
           phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
+          path: `${args.mnemonicPath}/0`,
           locale: args.mnemonicLocale,
         } as Mnemonic,
         true
@@ -567,7 +566,11 @@ task("quick-test", "Random quick testing function")
       console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
     }
     console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
-    console.log("First account: ", await hre.ethers.provider.getSigner(0).getAddress());
+    console.log(
+      "First accounts: ",
+      await hre.ethers.provider.getSigner(0).getAddress(),
+      await hre.ethers.provider.getSigner(1).getAddress()
+    );
     console.log(
       "First account balance: ",
       await hre.ethers.provider.getBalance(await hre.ethers.provider.getSigner(0).getAddress())
@@ -594,9 +597,10 @@ const config: HardhatUserConfig = {
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
       initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
+      allowUnlimitedContractSize: true,
       accounts: {
         mnemonic: KEYSTORE.default.mnemonic.phrase,
-        path: KEYSTORE.default.mnemonic.path,
+        path: KEYSTORE.default.mnemonic.basePath,
         count: KEYSTORE.default.accountNumber,
         // passphrase: KEYSTORE.default.password,
         accountsBalance: BigNumber.from(KEYSTORE.default.balance)

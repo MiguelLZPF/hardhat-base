@@ -117,6 +117,7 @@ export const deployUpgradeable = async (
   if (!logic || !logic.address) {
     throw new Error("Logic|Implementation not deployed properly");
   }
+  console.log(`Logic contract deployed at: ${logic.address}`);
   // -- encode function params for TUP
   let initData: string;
   if (args.length > 0) {
@@ -124,6 +125,7 @@ export const deployUpgradeable = async (
   } else {
     initData = factory.interface._encodeParams([], []);
   }
+  console.log(`Initialize data to be used: ${initData}`);
   //* TUP - Transparent Upgradeable Proxy
   const tuProxy = await (
     await new TUP__factory(deployer).deploy(logic.address, proxyAdmin.address, initData, {
@@ -217,6 +219,7 @@ export const upgrade = async (
   if (!newLogic || !newLogic.address) {
     throw new Error("Logic|Implementation not deployed properly");
   }
+  console.log(`New logic contract deployed at: ${newLogic.address}`);
 
   // -- encode function params for TUP
   let initData: string;
@@ -421,7 +424,8 @@ const getProxyAdminDeployment = async (proxy?: string, adminAddress?: string) =>
   const { networkIndex, netDeployment, deployments } = await getActualNetDeployment();
 
   if (networkIndex == undefined || !netDeployment) {
-    throw new Error("ERROR: there is no deployment for this network");
+    console.log("WARN: there is no deployment for this network");
+    return;
   } else if (netDeployment.smartContracts.proxyAdmins) {
     if (proxy && isAddress(proxy)) {
       // if the proxy address is given, get the proxy deployment to get the associated proxyAdmin
@@ -446,7 +450,8 @@ const getProxyAdminDeployment = async (proxy?: string, adminAddress?: string) =>
       return netDeployment.smartContracts.proxyAdmins[0];
     }
   } else {
-    throw new Error("ERROR: there is no Proxy Admin deployed in this network");
+    console.log("WARN: there is no Proxy Admin deployed in this network");
+    return;
   }
 };
 

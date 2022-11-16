@@ -18,7 +18,8 @@ type Hardfork = "london" | "berlin" | "byzantium";
     privateKey: "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d",
     mnemonic: {
       phrase: "myth like bonus scare over problem client lizard pioneer submit female collect",
-      path: "m/44'/60'/0'/00",
+      path: "m/44'/60'/0'/0/0",
+      basePath:"m/44'/60'/0'/0",
       locale: "en",
     },
     batchSize: 2, // hardhat task default wallets to add to the keystore in batch mode

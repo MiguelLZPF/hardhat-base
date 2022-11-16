@@ -39,7 +39,7 @@ export const generateWalletBatch = async (
     if (mnemonic && mnemonic.phrase) {
       finalMnemonic = {
         phrase: mnemonic.phrase,
-        path: `${mnemonic.path}${w}`,
+        path: `${mnemonic.path}/${w}`,
         locale: mnemonic.locale,
       };
     }
