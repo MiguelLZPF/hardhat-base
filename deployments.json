@@ -4,24 +4,33 @@
     "smartContracts": {
       "proxyAdmins": [
         {
-          "address": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+          "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
           "contractName": "ProxyAdmin",
-          "deployTimestamp": "2022-11-16T18:36:19.000Z",
-          "deployTxHash": "0x47455e3909efa57fc394102f27597747f30e8f2605f77dad535f85c7f9601a5c",
+          "deployTimestamp": "2022-11-17T14:08:57.000Z",
+          "deployTxHash": "0x137909084ece058a01243ca1a7502929aec65a5438080267848a34456a0c4bc5",
           "byteCodeHash": "0xd8e49449363770bacd06fbeca3719c114997d2cba490f31082c11202f055424d"
         }
       ],
       "contracts": [
         {
-          "admin": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
-          "proxy": "0x0290FB167208Af455bB137780163b7B7a9a10C16",
-          "logic": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66",
+          "admin": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+          "proxy": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
+          "logic": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
           "contractName": "LockUpgr",
-          "deployTimestamp": "2022-11-16T18:36:19.000Z",
-          "proxyTxHash": "0xbfe3997e1bca8e3024de484fcfc763e5b84fa3cfa5e4b032b8ff9a11fc15cef5",
-          "logicTxHash": "0x3120265e3d8d2431da09780e4d1d22401d33037fb85a196a369108e17f93079b",
-          "byteCodeHash": "0xfe1608f3b4791c521a71b28db8c7655b10f76033c0242ff886047e09ec4883d5",
-          "upgradeTimestamp": "2022-11-17T08:18:28.000Z"
+          "deployTimestamp": "2022-11-17T14:08:57.000Z",
+          "proxyTxHash": "0x7f3aabccc3415f4e1c6cee87511e137fd8c85562eed27cf397a73dc0add0941f",
+          "logicTxHash": "0x49f62da9487ccc72006bb556ffde0b3499828c750350018bc03045978d6d525f",
+          "byteCodeHash": "0xfe1608f3b4791c521a71b28db8c7655b10f76033c0242ff886047e09ec4883d5"
+        },
+        {
+          "admin": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+          "proxy": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550",
+          "logic": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
+          "contractName": "LockUpgr",
+          "deployTimestamp": "2022-11-17T14:20:11.000Z",
+          "proxyTxHash": "0xaf0cf51dc824afc00758cdca654bee97711b3c4e40ec191e488175b7ce1ba673",
+          "logicTxHash": "0x329d37bf940f62ef8945fafa9d466a5a844506902cb94634cd73d740207fd6f9",
+          "byteCodeHash": "0xfe1608f3b4791c521a71b28db8c7655b10f76033c0242ff886047e09ec4883d5"
         }
       ]
     }

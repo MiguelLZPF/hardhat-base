@@ -15,8 +15,11 @@ import {
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory as TUP__factory,
 } from "../typechain-types";
+import * as ProxyAdmin__Artifact from "../artifacts/contracts/external/ProxyAdmin.sol/ProxyAdmin.json";
 import yesno from "yesno";
 import { PromiseOrValue } from "../typechain-types/common";
+
+const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin__Artifact.deployedBytecode);
 
 /**
  * Performs a regular deployment and updates the deployment information in deployments JSON file
@@ -106,6 +109,15 @@ export const deployUpgradeable = async (
   } else {
     // proxy admin given as Contract
     proxyAdmin = proxyAdmin as ProxyAdmin;
+  }
+  // check if proxy admin is a ProxyAdmin Contract
+  try {
+    const proxyAdminCode = await deployer.provider!.getCode(proxyAdmin.address);
+    if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
+      throw new Error(`ERROR: ProxyAdmin(${proxyAdmin.address}) is not a ProxyAdmin Contract`);
+    }
+  } catch (error) {
+    throw new Error(`ERROR: ProxyAdmin(${proxyAdmin.address}) is not a ProxyAdmin Contract`);
   }
   adminDeployment = (await adminDeployment)
     ? adminDeployment
@@ -212,6 +224,15 @@ export const upgrade = async (
       deployer
     )) as ProxyAdmin;
   }
+  // check if proxy admin is a ProxyAdmin Contract
+  try {
+    const proxyAdminCode = await deployer.provider!.getCode(proxyAdmin.address);
+    if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
+      throw new Error(`ERROR: ProxyAdmin(${proxyAdmin.address}) is not a ProxyAdmin Contract`);
+    }
+  } catch (error) {
+    throw new Error(`ERROR: ProxyAdmin(${proxyAdmin.address}) is not a ProxyAdmin Contract`);
+  }
   //* Actual contracts
   const factory = await ethers.getContractFactory(contractName, deployer);
   const newLogic = await (await factory.deploy(GAS_OPT.max)).deployed();
@@ -303,6 +324,16 @@ export const getLogic = async (
     hre.ethers.provider
   ) as ProxyAdmin;
 
+  // check if proxy admin is a ProxyAdmin Contract
+  try {
+    const proxyAdminCode = await hre.ethers.provider!.getCode(proxyAdmin);
+    if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
+      throw new Error(`ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`);
+    }
+  } catch (error) {
+    throw new Error(`ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`);
+  }
+
   const callResults = await Promise.all([
     // get actual logic address directly from the proxy's storage
     hre.ethers.provider.getStorageAt(
@@ -345,6 +376,15 @@ export const changeLogic = async (
     ProxyAdmin__factory.abi,
     signer
   ) as ProxyAdmin;
+
+  try {
+    const proxyAdminCode = await signer.provider!.getCode(proxyAdmin);
+    if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
+      throw new Error(`ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`);
+    }
+  } catch (error) {
+    throw new Error(`ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`);
+  }
   // Get logic|implementation address
   const previousLogic = proxyAdminContract.getProxyImplementation(proxy);
   // Change logic contract
