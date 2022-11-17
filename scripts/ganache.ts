@@ -14,7 +14,7 @@ const ganacheServer = ganache.server({
   },
   wallet: {
     mnemonic: KEYSTORE.default.mnemonic.phrase,
-    hdPath: KEYSTORE.default.mnemonic.path,
+    hdPath: KEYSTORE.default.mnemonic.basePath,
     totalAccounts: KEYSTORE.default.accountNumber,
     lock: false,
     passphrase: KEYSTORE.default.password,

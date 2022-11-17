@@ -1,1 +1,29 @@
-[{"network":{"name":"ganache","chainId":69},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab","contractName":"Lock","deployTimestamp":"2022-09-07T20:10:12.000Z","deployTxHash":"0x41f6821d6580b832336ea77ecb426b431f7f340ec84c82a59a503dd159186951","byteCodeHash":"0xf4adb945a98d6abdb7abc18a7cb2619f3658fd4ccddb643e5b629adc336fd73f"}]}},{"network":{"name":"hardhat","chainId":31337},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab","contractName":"Lock","deployTimestamp":"2022-09-16T19:03:17.000Z","deployTxHash":"0x086908484bceafb7ff84c7bebdd143bab96881ecbc8d4ff0d5b673b6cd02acd8","byteCodeHash":"0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"}]}},{"network":{"name":"ganache","chainId":31337},"smartContracts":{"proxyAdmins":[],"contracts":[{"address":"0x5b1869D9A4C187F2EAa108f3062412ecf0526b24","contractName":"Lock","deployTimestamp":"2022-09-16T19:18:28.000Z","deployTxHash":"0x958a2f3bd2cca70ef851c15530e236bb2a61188ea1d1d7fcf7800b118251c93b","byteCodeHash":"0x048080646ce070f9194ddf21019a729557b5feb4bb04256dde79f8fa8dd19f74"}]}}]
+[
+  {
+    "network": { "name": "ganache", "chainId": 1337 },
+    "smartContracts": {
+      "proxyAdmins": [
+        {
+          "address": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+          "contractName": "ProxyAdmin",
+          "deployTimestamp": "2022-11-16T18:36:19.000Z",
+          "deployTxHash": "0x47455e3909efa57fc394102f27597747f30e8f2605f77dad535f85c7f9601a5c",
+          "byteCodeHash": "0xd8e49449363770bacd06fbeca3719c114997d2cba490f31082c11202f055424d"
+        }
+      ],
+      "contracts": [
+        {
+          "admin": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+          "proxy": "0x0290FB167208Af455bB137780163b7B7a9a10C16",
+          "logic": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66",
+          "contractName": "LockUpgr",
+          "deployTimestamp": "2022-11-16T18:36:19.000Z",
+          "proxyTxHash": "0xbfe3997e1bca8e3024de484fcfc763e5b84fa3cfa5e4b032b8ff9a11fc15cef5",
+          "logicTxHash": "0x3120265e3d8d2431da09780e4d1d22401d33037fb85a196a369108e17f93079b",
+          "byteCodeHash": "0xfe1608f3b4791c521a71b28db8c7655b10f76033c0242ff886047e09ec4883d5",
+          "upgradeTimestamp": "2022-11-17T08:18:28.000Z"
+        }
+      ]
+    }
+  }
+]

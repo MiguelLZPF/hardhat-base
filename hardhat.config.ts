@@ -8,12 +8,14 @@ import { Mnemonic } from "ethers/lib/utils";
 import { BLOCKCHAIN, CONTRACT, DEPLOY, KEYSTORE } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
-import { deploy, deployUpgradeable, upgrade } from "./scripts/deploy";
+import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "./scripts/deploy";
 import { logObject, setGlobalHRE } from "./scripts/utils";
 import {
   ICallContract,
+  IChangeLogic,
   IDeploy,
   IGenerateWallets,
+  IGetLogic,
   IGetMnemonic,
   IGetWalletInfo,
   IUpgrade,
@@ -45,7 +47,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
+    undefined,
     types.string
   )
   .addOptionalParam(
@@ -62,7 +64,6 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
   )
   .addFlag("connect", "If true, the wallet(s) will be automatically connected to the provider")
   .setAction(async (args: IGenerateWallets, hre) => {
-    console.log(`Args: ${logObject(args)}`);
     // if default keyword, use the default phrase
     args.mnemonicPhrase =
       args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
@@ -74,7 +75,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
         args.entropy ? Buffer.from(args.entropy) : undefined,
         {
           phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
+          path: args.mnemonicPath || KEYSTORE.default.mnemonic.basePath,
           locale: args.mnemonicLocale,
         } as Mnemonic,
         args.connect
@@ -87,7 +88,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
         args.privateKey,
         {
           phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
+          path: args.mnemonicPath || KEYSTORE.default.mnemonic.path,
           locale: args.mnemonicLocale,
         } as Mnemonic,
         args.connect
@@ -153,14 +154,14 @@ task("get-wallet-info", "Recover all information from an encrypted wallet or an 
     }
     console.log(`
     Wallet information:
-      - Address: ${wallet.address},
-      - Public Key: ${wallet.publicKey},
-      - Private Key: ${privateKey},
+      - Address: ${wallet.address}
+      - Public Key: ${wallet.publicKey}
+      - Private Key: ${privateKey}
       - Mnemonic:
-        - Phrase: ${args.mnemonicPhrase},
+        - Phrase: ${args.mnemonicPhrase}
         - Path: ${mnemonic.path}
         - Locale: ${mnemonic.locale}
-      - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)},
+      - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)}
     `);
   });
 
@@ -179,9 +180,15 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
   )
   .setAction(async (args: IGetMnemonic) => {
     const wallet = await decryptWallet(args.relativePath, args.password);
-    console.log(wallet.mnemonic);
+    console.log(`
+      - Mnemonic:
+        - Phrase: ${wallet.mnemonic.phrase}
+        - Path: ${wallet.mnemonic.path}
+        - Locale: ${wallet.mnemonic.locale}
+    `);
   });
 
+// DEPLOYMENTS
 task("deploy", "Deploy smart contracts on '--network'")
   .addFlag("upgradeable", "Deploy as upgradeable")
   .addPositionalParam(
@@ -274,12 +281,8 @@ task("deploy", "Deploy smart contracts on '--network'")
   });
 
 task("upgrade", "Upgrade smart contracts on '--network'")
-  .addPositionalParam(
-    "contractName",
-    "Name of the contract to deploy",
-    "Example_Storage",
-    types.string
-  )
+  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
+  .addPositionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
   .addOptionalParam(
     "relativePath",
     "Path relative to KEYSTORE.root to store the wallets",
@@ -310,7 +313,6 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     KEYSTORE.default.mnemonic.locale,
     types.string
   )
-  .addOptionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
   .addOptionalParam(
     "proxyAdmin",
     "Address of a deloyed Proxy Admin",
@@ -444,6 +446,105 @@ task("call-contract", "Call a contract function (this does not change contract s
     );
   });
 
+task(
+  "get-logic",
+  "Check what logic|implementation smart contract address is currently using a given proxy"
+)
+  .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
+  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
+  .setAction(async (args: IGetLogic, hre: HardhatRuntimeEnvironment) => {
+    setGlobalHRE(hre);
+
+    const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } = await getLogic(
+      args.proxy,
+      args.proxyAdmin,
+      hre
+    );
+
+    console.log(`
+          Logic contract information:
+            - Logic (from Proxy's storage): ${logicFromProxy}
+            - Admin (from Proxy's storage): ${adminFromProxy}
+            - Logic (from Admin): ${logicFromAdmin}
+            - Admin (from Admin): ${adminFromAdmin}
+        `);
+  });
+
+task("change-logic", "change the actual logic|implementation smart contract of a TUP proxy")
+  .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
+  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
+  .addParam("newLogic", "Address of the new logic|implementation contract", undefined, types.string)
+  .addOptionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root to store the wallets",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    KEYSTORE.default.password,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    KEYSTORE.default.mnemonic.path,
+    types.string
+  )
+  .addOptionalParam(
+    "mnemonicLocale",
+    "Mnemonic locale to generate wallet from",
+    KEYSTORE.default.mnemonic.locale,
+    types.string
+  )
+  .setAction(async (args: IChangeLogic, hre: HardhatRuntimeEnvironment) => {
+    setGlobalHRE(hre);
+
+    args.mnemonicPhrase =
+      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
+    let wallet: Wallet | undefined;
+    if (args.mnemonicPhrase) {
+      wallet = await generateWallet(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          phrase: args.mnemonicPhrase,
+          path: `${args.mnemonicPath}/0`,
+          locale: args.mnemonicLocale,
+        } as Mnemonic,
+        true
+      );
+    } else if (args.relativePath) {
+      wallet = await decryptWallet(args.relativePath, args.password, true);
+    } else {
+      throw new Error("ERROR: signer required to perform this task");
+    }
+
+    const { previousLogic, actualLogic, receipt } = await changeLogic(
+      args.proxy,
+      args.newLogic,
+      wallet!,
+      args.proxyAdmin
+    );
+    console.log(`
+          Logic changed successfully:
+            - Previous Logic: ${previousLogic}
+            - Actual Logic: ${actualLogic}
+            - Transaction: ${receipt.transactionHash}
+            - Block: ${receipt.blockHash}
+        `);
+  });
+
+// OTHER
 task("get-timestamp", "get the current timestamp in seconds")
   .addOptionalParam("timeToAdd", "time to add to the timestamp in seconds", 0, types.int)
   .setAction(async ({ timeToAdd }, hre: HardhatRuntimeEnvironment) => {
@@ -465,7 +566,11 @@ task("quick-test", "Random quick testing function")
       console.log("RAW Args: ", args, typeof args[0], args[0], typeof args[1], args[1]);
     }
     console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
-    console.log("First account: ", await hre.ethers.provider.getSigner(0).getAddress());
+    console.log(
+      "First accounts: ",
+      await hre.ethers.provider.getSigner(0).getAddress(),
+      await hre.ethers.provider.getSigner(1).getAddress()
+    );
     console.log(
       "First account balance: ",
       await hre.ethers.provider.getBalance(await hre.ethers.provider.getSigner(0).getAddress())
@@ -479,9 +584,9 @@ const config: HardhatUserConfig = {
   solidity: {
     version: BLOCKCHAIN.default.solVersion,
     settings: {
-      // optimizer: {
-      //   enabled: true,
-      // },
+      optimizer: {
+        enabled: true,
+      },
       evmVersion: BLOCKCHAIN.default.evm,
     },
   },
@@ -492,9 +597,10 @@ const config: HardhatUserConfig = {
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
       initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
+      allowUnlimitedContractSize: true,
       accounts: {
         mnemonic: KEYSTORE.default.mnemonic.phrase,
-        path: KEYSTORE.default.mnemonic.path,
+        path: KEYSTORE.default.mnemonic.basePath,
         count: KEYSTORE.default.accountNumber,
         // passphrase: KEYSTORE.default.password,
         accountsBalance: BigNumber.from(KEYSTORE.default.balance)
