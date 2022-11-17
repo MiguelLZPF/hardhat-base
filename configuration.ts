@@ -32,12 +32,9 @@ export const KEYSTORE = {
 export const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
-    evm: "london" as Hardfork,
+    evm: "berlin" as Hardfork,
     gasLimit: 800000,
     gasPrice: 0,
-    maxFeePerGas: 900000000,
-    maxPriorityFeePerGas: 100,
-    initialBaseFeePerGas: 7,
   },
   hardhat: {
     chainId: 31337,
@@ -56,9 +53,7 @@ export const BLOCKCHAIN = {
 export const GAS_OPT = {
   max: {
     gasLimit: BLOCKCHAIN.default.gasLimit,
-    // gasPrice: BLOCKCHAIN.default.gasPrice,
-    maxPriorityFeePerGas: BLOCKCHAIN.default.maxPriorityFeePerGas,
-    maxFeePerGas: BLOCKCHAIN.default.maxFeePerGas,
+    gasPrice: BLOCKCHAIN.default.gasPrice,
   },
 };
 

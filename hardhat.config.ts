@@ -596,7 +596,6 @@ const config: HardhatUserConfig = {
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
-      initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
       allowUnlimitedContractSize: true,
       accounts: {
         mnemonic: KEYSTORE.default.mnemonic.phrase,
@@ -620,7 +619,6 @@ const config: HardhatUserConfig = {
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
-      initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
     },
   },
   contractSizer: {
