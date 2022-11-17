@@ -109,7 +109,7 @@ export const deployUpgradeable = async (
   }
   adminDeployment = (await adminDeployment)
     ? adminDeployment
-    : getProxyAdminDeployment(proxyAdmin.address);
+    : getProxyAdminDeployment(undefined, proxyAdmin.address);
   //* Actual contracts
   const factory = await ethers.getContractFactory(contractName, deployer);
   const logic = await (await factory.deploy(GAS_OPT.max)).deployed();
@@ -292,9 +292,13 @@ export const getLogic = async (
   proxyAdmin?: string,
   hre: HardhatRuntimeEnvironment = ghre
 ) => {
+  proxyAdmin = proxyAdmin || (await getProxyAdminDeployment(proxy))?.address;
+  if (!proxyAdmin) {
+    throw new Error(`ERROR: ${proxy} NOT found in this network`);
+  }
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
-    proxyAdmin || (await getProxyAdminDeployment(proxy))!.address,
+    proxyAdmin,
     ProxyAdmin__factory.abi,
     hre.ethers.provider
   ) as ProxyAdmin;
@@ -331,9 +335,13 @@ export const changeLogic = async (
   signer: Signer,
   proxyAdmin?: string
 ) => {
+  proxyAdmin = proxyAdmin || (await getProxyAdminDeployment(proxy))?.address;
+  if (!proxyAdmin) {
+    throw new Error(`ERROR: ${proxy} NOT found in this network`);
+  }
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
-    proxyAdmin || (await getProxyAdminDeployment(proxy))!.address,
+    proxyAdmin,
     ProxyAdmin__factory.abi,
     signer
   ) as ProxyAdmin;

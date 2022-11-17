@@ -27,9 +27,13 @@ The structure follows a Hardhat project environment using **ethers**, **waffle**
 
 Marked tasks are the ones provided by this project "-->"
 
+**PLEASE USE: `npx hardhat --help` and `npx hardat {{TASK_NAME}} --help`**
+
 ```text
 AVAILABLE TASKS:
 
+  --> call-contract         Call a contract function (this does not change contract storage or state)
+  --> change-logic          change the actual logic|implementation smart contract of a TUP proxy
   check                 Check whatever you need
   clean                 Clears the cache and deletes all artifacts
   compile               Compiles the entire project, building all artifacts
@@ -39,6 +43,7 @@ AVAILABLE TASKS:
   flatten               Flattens and prints contracts and their dependencies
   gas-reporter:merge
   --> generate-wallets      Generates Encryped JSON persistent wallets
+  --> get-logic             Check what logic|implementation smart contract address is currently using a given proxy
   --> get-mnemonic          Recover mnemonic phrase from an encrypted wallet
   --> get-timestamp         get the current timestamp in seconds
   --> get-wallet-info       Recover all information from an encrypted wallet

@@ -9,7 +9,7 @@ type Hardfork = "london" | "berlin" | "byzantium";
  * @param test constants related to tests
  * @param test.userNumber number of users to create in tests
  */
- export const KEYSTORE = {
+export const KEYSTORE = {
   root: "keystore",
   default: {
     accountNumber: 10, // Ganache server default account number
@@ -19,7 +19,7 @@ type Hardfork = "london" | "berlin" | "byzantium";
     mnemonic: {
       phrase: "myth like bonus scare over problem client lizard pioneer submit female collect",
       path: "m/44'/60'/0'/0/0",
-      basePath:"m/44'/60'/0'/0",
+      basePath: "m/44'/60'/0'/0",
       locale: "en",
     },
     batchSize: 2, // hardhat task default wallets to add to the keystore in batch mode
@@ -29,7 +29,7 @@ type Hardfork = "london" | "berlin" | "byzantium";
 /**
  * The BLOCKCHAIN environment constant group is used to agrupate the constants related to the blockchain network
  */
- export const BLOCKCHAIN = {
+export const BLOCKCHAIN = {
   default: {
     solVersion: "0.8.13",
     evm: "london" as Hardfork,
@@ -66,18 +66,16 @@ export const DEPLOY = {
   deploymentsPath: "deployments.json",
   proxyAdmin: {
     name: "ProxyAdmin",
-    address: "", // "0xa978565B473049af66e883C471a725B3C1405f6b", // this address is used by default if no other is provided
+    address: "", // "0xa978565B473049af66e883C471a725B3C1405f6b", // this address is used as default proxyAdmin for upgradeable deployments
   },
 };
 
 export const CONTRACT = [
   {
     name: "Lock",
-    deployTxHash: "0x00",
   },
   {
     name: "LockUpgr",
-    deployTxHash: "0x00"
   },
 ];
 

@@ -34,7 +34,7 @@ export const networks = new Map<number | undefined, INetwork>([
   [
     BLOCKCHAIN.ganache.chainId,
     {
-      chainId: BLOCKCHAIN.hardhat.chainId,
+      chainId: BLOCKCHAIN.ganache.chainId,
       name: "ganache",
       url: `http://${BLOCKCHAIN.ganache.hostname}:${BLOCKCHAIN.ganache.port}`,
     },

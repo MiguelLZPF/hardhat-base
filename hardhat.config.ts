@@ -463,8 +463,8 @@ task(
 
     console.log(`
           Logic contract information:
-            - Logic (from Proxy): ${logicFromProxy}
-            - Admin (from Proxy): ${adminFromProxy}
+            - Logic (from Proxy's storage): ${logicFromProxy}
+            - Admin (from Proxy's storage): ${adminFromProxy}
             - Logic (from Admin): ${logicFromAdmin}
             - Admin (from Admin): ${adminFromAdmin}
         `);
@@ -584,9 +584,9 @@ const config: HardhatUserConfig = {
   solidity: {
     version: BLOCKCHAIN.default.solVersion,
     settings: {
-      // optimizer: {
-      //   enabled: true,
-      // },
+      optimizer: {
+        enabled: true,
+      },
       evmVersion: BLOCKCHAIN.default.evm,
     },
   },
