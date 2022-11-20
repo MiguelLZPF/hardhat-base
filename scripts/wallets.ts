@@ -34,7 +34,6 @@ export const generateWalletBatch = async (
       // insert "0" if less than 10
       finalRelPath = w < 10 ? `${relativePath}0${w}.json` : `${relativePath}${w}.json`;
     }
-    console.log(finalRelPath);
     let finalMnemonic: Mnemonic | undefined;
     if (mnemonic && mnemonic.phrase) {
       finalMnemonic = {
