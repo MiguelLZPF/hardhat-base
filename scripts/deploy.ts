@@ -2,6 +2,7 @@ import { DEPLOY, GAS_OPT } from "../configuration";
 import { ghre } from "./utils";
 import * as fs from "async-file";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { ethers } from "hardhat";
 import { Contract, ContractReceipt, Signer } from "ethers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
 import {
@@ -10,14 +11,15 @@ import {
   IUpgradeDeployment,
   networks,
 } from "../models/Deploy";
-import {
-  ProxyAdmin,
-  ProxyAdmin__factory,
-  TransparentUpgradeableProxy__factory as TUP__factory,
-} from "../typechain-types";
-import * as ProxyAdmin__Artifact from "../artifacts/contracts/external/ProxyAdmin.sol/ProxyAdmin.json";
+// import {
+//   ProxyAdmin,
+//   ProxyAdmin__factory,
+//   TransparentUpgradeableProxy__factory as TUP__factory,
+// } from "../typechain-types";
+import * as ProxyAdmin__Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json";
 import yesno from "yesno";
 import { PromiseOrValue } from "../typechain-types/common";
+import { ProxyAdmin } from "../typechain-types";
 
 const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin__Artifact.deployedBytecode);
 
@@ -69,6 +71,8 @@ export const deployUpgradeable = async (
   proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address
 ) => {
   const ethers = ghre.ethers;
+  const proxyAdminFactory = ethers.getContractFactory("ProxyAdmin", deployer);
+  const TUPFactory = ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
   //* Proxy Admin
   // save or update Proxy Admin in deployments
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
@@ -97,13 +101,13 @@ export const deployUpgradeable = async (
       if (!ok) {
         throw new Error("Deployment aborted");
       }
-      proxyAdmin = await (await new ProxyAdmin__factory(deployer).deploy(GAS_OPT.max)).deployed();
+      proxyAdmin = await (await (await proxyAdminFactory).deploy(GAS_OPT.max)).deployed();
       adminDeployment = {
         address: proxyAdmin.address,
         contractName: DEPLOY.proxyAdmin.name,
         deployTimestamp: await getContractTimestamp(proxyAdmin),
         deployTxHash: proxyAdmin.deployTransaction.hash,
-        byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
+        byteCodeHash: keccak256((await proxyAdminFactory).bytecode),
       };
     }
   } else {
@@ -140,7 +144,9 @@ export const deployUpgradeable = async (
   console.log(`Initialize data to be used: ${initData}`);
   //* TUP - Transparent Upgradeable Proxy
   const tuProxy = await (
-    await new TUP__factory(deployer).deploy(logic.address, proxyAdmin.address, initData, {
+    await (
+      await TUPFactory
+    ).deploy(logic.address, proxyAdmin.address, initData, {
       ...GAS_OPT.max,
       value: txValue,
     })
@@ -173,7 +179,7 @@ export const deployUpgradeable = async (
       : {
           address: proxyAdmin.address,
           contractName: DEPLOY.proxyAdmin.name,
-          byteCodeHash: keccak256(ProxyAdmin__factory.bytecode),
+          byteCodeHash: keccak256((await proxyAdminFactory).bytecode),
         }
   );
 };
@@ -320,7 +326,7 @@ export const getLogic = async (
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
     proxyAdmin,
-    ProxyAdmin__factory.abi,
+    ProxyAdmin__Artifact.abi,
     hre.ethers.provider
   ) as ProxyAdmin;
 
@@ -373,7 +379,7 @@ export const changeLogic = async (
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
     proxyAdmin,
-    ProxyAdmin__factory.abi,
+    ProxyAdmin__Artifact.abi,
     signer
   ) as ProxyAdmin;
 

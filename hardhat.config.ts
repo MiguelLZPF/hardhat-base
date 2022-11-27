@@ -9,7 +9,7 @@ import { BLOCKCHAIN, CONTRACT, DEPLOY, KEYSTORE } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
 import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "./scripts/deploy";
-import { logObject, setGlobalHRE } from "./scripts/utils";
+import { setGlobalHRE } from "./scripts/utils";
 import {
   ICallContract,
   IChangeLogic,
@@ -630,12 +630,13 @@ const config: HardhatUserConfig = {
     enabled: true,
     currency: "EUR",
   },
-  // typechain: {
-  //   externalArtifacts: [ //! NOT WORKING: export extrange error
-  //     "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
-  //     "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
-  //   ],
-  // },
+  typechain: {
+    externalArtifacts: [
+      //! NOT WORKING: export extrange error
+      "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
+      "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+    ],
+  },
 };
 
 export default config;

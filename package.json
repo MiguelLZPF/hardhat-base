@@ -1,6 +1,6 @@
 {
   "name": "hardhat-base",
-  "version": "2.7.0",
+  "version": "3.0.0",
   "description": "This is a base hardhat project for development, testing and deployment of Smart Contracts. It adds scripts and hardhat tasks for Off-Chain deployments.",
   "main": "index.js",
   "scripts": {
@@ -34,7 +34,7 @@
     "ganache": "^7.5.0",
     "hardhat": "^2.12.2",
     "hardhat-contract-sizer": "^2.6.1",
-    "prettier": "^2.7.1",
+    "prettier": "^2.8.0",
     "prettier-plugin-solidity": "^1.0.0",
     "yesno": "^0.4.0"
   }
