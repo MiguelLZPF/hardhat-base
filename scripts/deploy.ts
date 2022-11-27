@@ -2,7 +2,6 @@ import { DEPLOY, GAS_OPT } from "../configuration";
 import { ghre } from "./utils";
 import * as fs from "async-file";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { ethers } from "hardhat";
 import { Contract, ContractReceipt, Signer } from "ethers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
 import {
@@ -11,17 +10,17 @@ import {
   IUpgradeDeployment,
   networks,
 } from "../models/Deploy";
-// import {
-//   ProxyAdmin,
-//   ProxyAdmin__factory,
-//   TransparentUpgradeableProxy__factory as TUP__factory,
-// } from "../typechain-types";
-import * as ProxyAdmin__Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json";
+import * as ProxyAdmin_Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json";
+import * as TUP_Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json";
 import yesno from "yesno";
 import { PromiseOrValue } from "../typechain-types/common";
-import { ProxyAdmin } from "../typechain-types";
+import {
+  ProxyAdmin,
+  ProxyAdmin__factory,
+  TransparentUpgradeableProxy__factory,
+} from "../typechain-types";
 
-const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin__Artifact.deployedBytecode);
+const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin_Artifact.deployedBytecode);
 
 /**
  * Performs a regular deployment and updates the deployment information in deployments JSON file
@@ -71,14 +70,20 @@ export const deployUpgradeable = async (
   proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address
 ) => {
   const ethers = ghre.ethers;
-  const proxyAdminFactory = ethers.getContractFactory("ProxyAdmin", deployer);
-  const TUPFactory = ethers.getContractFactory("TransparentUpgradeableProxy", deployer);
+  const proxyAdminFactory = ethers.getContractFactoryFromArtifact(
+    ProxyAdmin_Artifact,
+    deployer
+  ) as Promise<ProxyAdmin__factory>;
+  const TUPFactory = ethers.getContractFactoryFromArtifact(
+    TUP_Artifact,
+    deployer
+  ) as Promise<TransparentUpgradeableProxy__factory>;
   //* Proxy Admin
   // save or update Proxy Admin in deployments
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
-    proxyAdmin = (await ethers.getContractAt(
-      DEPLOY.proxyAdmin.name,
+    proxyAdmin = (await ethers.getContractAtFromArtifact(
+      ProxyAdmin_Artifact,
       proxyAdmin,
       deployer
     )) as ProxyAdmin;
@@ -88,8 +93,8 @@ export const deployUpgradeable = async (
     const firstDeployedAdmin = await getProxyAdminDeployment();
     if (firstDeployedAdmin && firstDeployedAdmin.address) {
       // use the first existant proxy admin deployment
-      proxyAdmin = (await ethers.getContractAt(
-        DEPLOY.proxyAdmin.name,
+      proxyAdmin = (await ethers.getContractAtFromArtifact(
+        ProxyAdmin_Artifact,
         firstDeployedAdmin.address,
         deployer
       )) as ProxyAdmin;
@@ -206,8 +211,8 @@ export const upgrade = async (
   //* Proxy Admin
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     // use given address as ProxyAdmin
-    proxyAdmin = (await ethers.getContractAt(
-      DEPLOY.proxyAdmin.name,
+    proxyAdmin = (await ethers.getContractAtFromArtifact(
+      ProxyAdmin_Artifact,
       proxyAdmin,
       deployer
     )) as ProxyAdmin;
@@ -222,8 +227,8 @@ export const upgrade = async (
     if (!(await contractDeployment).admin) {
       throw new Error(`ERROR: No proxy deployment found for proxy address: ${proxy}`);
     }
-    proxyAdmin = (await ethers.getContractAt(
-      DEPLOY.proxyAdmin.name,
+    proxyAdmin = (await ethers.getContractAtFromArtifact(
+      ProxyAdmin_Artifact,
       (
         await contractDeployment
       ).admin,
@@ -326,7 +331,7 @@ export const getLogic = async (
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
     proxyAdmin,
-    ProxyAdmin__Artifact.abi,
+    ProxyAdmin_Artifact.abi,
     hre.ethers.provider
   ) as ProxyAdmin;
 
@@ -379,7 +384,7 @@ export const changeLogic = async (
   // instanciate the ProxyAdmin
   const proxyAdminContract = new Contract(
     proxyAdmin,
-    ProxyAdmin__Artifact.abi,
+    ProxyAdmin_Artifact.abi,
     signer
   ) as ProxyAdmin;
 
