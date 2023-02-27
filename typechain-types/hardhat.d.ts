@@ -13,17 +13,37 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "AccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AccessControl__factory>;
+    getContractFactory(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAccessControl__factory>;
+    getContractFactory(
+      name: "Ownable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Ownable__factory>;
+    getContractFactory(
       name: "Initializable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Initializable__factory>;
     getContractFactory(
-      name: "Lock",
+      name: "ERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Lock__factory>;
+    ): Promise<Contracts.ERC165__factory>;
     getContractFactory(
-      name: "LockUpgr",
+      name: "IERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.LockUpgr__factory>;
+    ): Promise<Contracts.IERC165__factory>;
+    getContractFactory(
+      name: "IStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IStorage__factory>;
+    getContractFactory(
+      name: "Storage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Storage__factory>;
     getContractFactory(
       name: "ProxyAdmin",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -34,20 +54,45 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.TransparentUpgradeableProxy__factory>;
 
     getContractAt(
+      name: "AccessControl",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AccessControl>;
+    getContractAt(
+      name: "IAccessControl",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAccessControl>;
+    getContractAt(
+      name: "Ownable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Ownable>;
+    getContractAt(
       name: "Initializable",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Initializable>;
     getContractAt(
-      name: "Lock",
+      name: "ERC165",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.Lock>;
+    ): Promise<Contracts.ERC165>;
     getContractAt(
-      name: "LockUpgr",
+      name: "IERC165",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.LockUpgr>;
+    ): Promise<Contracts.IERC165>;
+    getContractAt(
+      name: "IStorage",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IStorage>;
+    getContractAt(
+      name: "Storage",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Storage>;
     getContractAt(
       name: "ProxyAdmin",
       address: string,
