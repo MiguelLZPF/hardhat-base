@@ -1,4 +1,4 @@
-type Hardfork = "london" | "berlin" | "byzantium";
+import { ContractName, Hardfork, IContract, INetwork, NetworkName } from "models/Configuration";
 
 /**
  * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
@@ -39,17 +39,50 @@ export const BLOCKCHAIN = {
     maxPriorityFeePerGas: 100,
     initialBaseFeePerGas: 7,
   },
-  hardhat: {
-    chainId: 31337,
-    hostname: "127.0.0.1",
-    port: 8545,
-  },
-  ganache: {
-    chainId: 1337,
-    hostname: "127.0.0.1",
-    port: 8545,
-    dbPath: ".ganache-db",
-  },
+  networks: new Map<NetworkName | undefined, INetwork>([
+    [
+      undefined,
+      {
+        chainId: 31337,
+        name: "hardhat",
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: 8545,
+      },
+    ],
+    [
+      "hardhat",
+      {
+        chainId: 31337,
+        name: "hardhat",
+        protocol: "http",
+        hostname: "localhost",
+        port: 8545,
+      },
+    ],
+    [
+      "ganache",
+      {
+        chainId: 1337,
+        name: "ganache",
+        protocol: "http",
+        hostname: "localhost",
+        port: 8545,
+        dbPath: ".ganache-db",
+      },
+    ],
+    [
+      "mainTest",
+      {
+        chainId: 1337,
+        name: "mainTest",
+        protocol: "http",
+        hostname: "192.168.12.207",
+        port: 8545,
+        dbPath: ".ganache-db",
+      },
+    ],
+  ]),
 };
 
 // default gas options to be used when sending Tx. It aims to zero gas price networks
@@ -70,14 +103,44 @@ export const DEPLOY = {
   },
 };
 
-export const CONTRACT = [
-  {
-    name: "Lock",
-  },
-  {
-    name: "LockUpgr",
-  },
-];
+export const CONTRACTS = new Map<ContractName, IContract>([
+  [
+    "ProxyAdmin",
+    {
+      name: "ProxyAdmin",
+      artifact: "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
+    "Storage",
+    {
+      name: "Storage",
+      artifact: "artifacts/contracts/Storage.sol/Storage.json",
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
+    "StorageUpgr",
+    {
+      name: "StorageUpgr",
+      artifact: "artifacts/contracts/StorageUpgr.sol/StorageUpgr.json",
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+]);
 
 export const TEST = {
   accountNumber: 10,

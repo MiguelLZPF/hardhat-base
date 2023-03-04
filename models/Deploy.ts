@@ -1,70 +1,31 @@
-import { BLOCKCHAIN } from "../configuration";
-
-export interface INetwork {
-  chainId: number;
-  name: string;
-  url: string;
-}
-
-export const networks = new Map<number | undefined, INetwork>([
-  [
-    undefined,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ], // Default hardhat
-  [
-    0,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ], // Default hardhat
-  [
-    BLOCKCHAIN.hardhat.chainId,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ],
-  [
-    BLOCKCHAIN.ganache.chainId,
-    {
-      chainId: BLOCKCHAIN.ganache.chainId,
-      name: "ganache",
-      url: `http://${BLOCKCHAIN.ganache.hostname}:${BLOCKCHAIN.ganache.port}`,
-    },
-  ],
-]);
+import { ContractName, NetworkName } from "models/Configuration";
 
 export interface IRegularDeployment {
   address: string;
-  contractName?: string;
+  contractName?: ContractName;
   deployTxHash?: string;
   deployTimestamp?: Date | number | string;
   byteCodeHash?: string;
+  tag?: string;
 }
 
 export interface IUpgradeDeployment {
   admin: string;
   proxy: string; // or storage
   logic: string; // or implementation
-  contractName?: string;
+  contractName?: ContractName;
   proxyTxHash?: string;
   logicTxHash?: string;
   deployTimestamp?: Date | number | string;
   upgradeTimestamp?: Date | number | string;
   byteCodeHash?: string;
+  tag?: string;
 }
 
 export interface INetworkDeployment {
   network: {
-    name: string;
-    chainId: number | string;
+    name: NetworkName;
+    chainId: number;
   };
   smartContracts: {
     proxyAdmins?: IRegularDeployment[];
