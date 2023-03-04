@@ -9,7 +9,6 @@ contract Storage is IStorage, Ownable {
 
   constructor(uint256 initialValue) {
     number = initialValue;
-    _transferOwnership(_msgSender());
   }
 
   function store(uint256 num) public {
