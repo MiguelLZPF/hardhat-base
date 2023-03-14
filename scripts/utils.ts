@@ -1,15 +1,16 @@
 import * as fs from "async-file";
 import util from "util";
-import { constants } from "ethers";
+import { constants, Signer, ContractFactory } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
-import { INetwork, networks } from "../models/Deploy";
+import { chainIdToNetwork, ContractName, INetwork } from "models/Configuration";
+import { BLOCKCHAIN, CONTRACTS } from "configuration";
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
 export let gEthers: HardhatRuntimeEnvironment["ethers"];
 export let gProvider: JsonRpcProvider;
-export let gCurrentNetwork: INetwork;
+export let gNetwork: INetwork;
 
 export const ADDR_ZERO = constants.AddressZero;
 
@@ -22,11 +23,27 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
-  gCurrentNetwork = networks.get(
-    gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
+  gNetwork = BLOCKCHAIN.networks.get(
+    chainIdToNetwork.get(
+      gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
+    )
   )!;
-  return { gProvider, gCurrentNetwork };
+  return { gProvider, gNetwork };
 };
+
+export const getContractInstance = async (
+  contractName: ContractName,
+  signer?: Signer,
+  contractAddr?: string
+) => {
+  const artifact = JSON.parse(await fs.readFile(CONTRACTS.get(contractName)!.artifact));
+  const factory = new ContractFactory(artifact.abi, artifact.bytecode, signer);
+  const contract = factory.attach(
+    contractAddr || CONTRACTS.get(contractName)!.address.get(gNetwork.name)!
+  );
+  return signer ? contract : contract.connect(gProvider);
+};
+
 
 /**
  * Check if directories are present, if they aren't, create them

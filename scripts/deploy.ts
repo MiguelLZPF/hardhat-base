@@ -1,26 +1,22 @@
-import { DEPLOY, GAS_OPT } from "../configuration";
-import { ghre } from "./utils";
-import * as fs from "async-file";
+import { CONTRACTS, DEPLOY, GAS_OPT } from "configuration";
+import { getContractInstance, ghre, gProvider } from "scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Contract, ContractReceipt, Signer } from "ethers";
+import { Contract, ContractReceipt, Signer, PayableOverrides, ContractFactory } from "ethers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
-import {
-  INetworkDeployment,
-  IRegularDeployment,
-  IUpgradeDeployment,
-  networks,
-} from "../models/Deploy";
-import * as ProxyAdmin_Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json";
-import * as TUP_Artifact from "../node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json";
+import { INetworkDeployment, IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
 import yesno from "yesno";
-import { PromiseOrValue } from "../typechain-types/common";
+import { PromiseOrValue } from "typechain-types/common";
 import {
   ProxyAdmin,
-  ProxyAdmin__factory,
-  TransparentUpgradeableProxy__factory,
-} from "../typechain-types";
+  TransparentUpgradeableProxy,
+} from "typechain-types";
+import { readFileSync } from "fs";
+import { ContractName } from "models/Configuration";
 
-const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin_Artifact.deployedBytecode);
+const PROXY_ADMIN_ARTIFACT = JSON.parse(
+  readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, { encoding: "utf-8" })
+);
+const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
 
 /**
  * Performs a regular deployment and updates the deployment information in deployments JSON file
@@ -30,28 +26,42 @@ const PROXY_ADMIN_CODEHASH = keccak256(ProxyAdmin_Artifact.deployedBytecode);
  * @param txValue contract creation transaccion value
  */
 export const deploy = async (
-  contractName: string,
+  contractName: ContractName,
   deployer: Signer,
-  args: unknown[],
-  txValue = 0
+  args: unknown[] = [],
+  overrides?: PayableOverrides,
+  save: boolean = true
 ) => {
-  const ethers = ghre.ethers;
-  const factory = await ethers.getContractFactory(contractName, deployer);
+  // check if deployer is connected to the provider
+  deployer = deployer.provider ? deployer : deployer.connect(gProvider);
+  // get the artifact of the contract name
+  const artifact = JSON.parse(
+    readFileSync(CONTRACTS.get(contractName)!.artifact, { encoding: "utf-8" })
+  );
+  // create factory instance and deploy
+  const factory = new ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  // actual deployment
   const contract = await (
-    await factory.deploy(...args, { ...GAS_OPT.max, value: txValue })
+    await factory.deploy(...args, overrides ? overrides : { ...GAS_OPT.max })
   ).deployed();
+  const receipt = await contract.deployTransaction.wait();
   console.log(`
     Regular contract deployed:
       - Address: ${contract.address}
-      - Arguments: ${args}
-  `);
-  await saveDeployment({
+      - Arguments: ${args}`);
+  // save contract deployment information
+  const deployment: IRegularDeployment = {
     address: contract.address,
     contractName: contractName,
-    deployTimestamp: await getContractTimestamp(contract),
-    deployTxHash: contract.deployTransaction.hash,
-    byteCodeHash: keccak256(factory.bytecode),
-  } as IRegularDeployment);
+    deployTimestamp: await getContractTimestamp(contract, receipt.transactionHash),
+    deployTxHash: receipt.transactionHash,
+    byteCodeHash: keccak256(await gProvider.getCode(contract.address)),
+  };
+  save ? await saveDeployment(deployment) : undefined;
+  return {
+    deployment: deployment,
+    contractInstance: contract,
+  };
 };
 
 /**
@@ -63,40 +73,27 @@ export const deploy = async (
  * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
  */
 export const deployUpgradeable = async (
-  contractName: string,
+  contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
   txValue = 0,
   proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address
 ) => {
-  const ethers = ghre.ethers;
-  const proxyAdminFactory = ethers.getContractFactoryFromArtifact(
-    ProxyAdmin_Artifact,
-    deployer
-  ) as Promise<ProxyAdmin__factory>;
-  const TUPFactory = ethers.getContractFactoryFromArtifact(
-    TUP_Artifact,
-    deployer
-  ) as Promise<TransparentUpgradeableProxy__factory>;
   //* Proxy Admin
   // save or update Proxy Admin in deployments
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
-    proxyAdmin = (await ethers.getContractAtFromArtifact(
-      ProxyAdmin_Artifact,
-      proxyAdmin,
-      deployer
-    )) as ProxyAdmin;
+    proxyAdmin = (await getContractInstance("ProxyAdmin", deployer, proxyAdmin)) as ProxyAdmin;
   } else if (proxyAdmin && typeof proxyAdmin == "string") {
     throw new Error("String provided as Proxy Admin's address is not an address");
   } else if (!proxyAdmin) {
     const firstDeployedAdmin = await getProxyAdminDeployment();
     if (firstDeployedAdmin && firstDeployedAdmin.address) {
       // use the first existant proxy admin deployment
-      proxyAdmin = (await ethers.getContractAtFromArtifact(
-        ProxyAdmin_Artifact,
-        firstDeployedAdmin.address,
-        deployer
+      proxyAdmin = (await getContractInstance(
+        "ProxyAdmin",
+        deployer,
+        firstDeployedAdmin.address
       )) as ProxyAdmin;
     } else {
       // deploy new Proxy Admin
@@ -106,14 +103,9 @@ export const deployUpgradeable = async (
       if (!ok) {
         throw new Error("Deployment aborted");
       }
-      proxyAdmin = await (await (await proxyAdminFactory).deploy(GAS_OPT.max)).deployed();
-      adminDeployment = {
-        address: proxyAdmin.address,
-        contractName: DEPLOY.proxyAdmin.name,
-        deployTimestamp: await getContractTimestamp(proxyAdmin),
-        deployTxHash: proxyAdmin.deployTransaction.hash,
-        byteCodeHash: keccak256((await proxyAdminFactory).bytecode),
-      };
+      const deployResult = await deploy("ProxyAdmin", deployer, undefined, undefined, false);
+      proxyAdmin = deployResult.contractInstance as ProxyAdmin;
+      adminDeployment = deployResult.deployment;
     }
   } else {
     // proxy admin given as Contract
@@ -132,8 +124,8 @@ export const deployUpgradeable = async (
     ? adminDeployment
     : getProxyAdminDeployment(undefined, proxyAdmin.address);
   //* Actual contracts
-  const factory = await ethers.getContractFactory(contractName, deployer);
-  const logic = await (await factory.deploy(GAS_OPT.max)).deployed();
+  const deployResult = await deploy(contractName, deployer, undefined, GAS_OPT.max, false);
+  const logic = deployResult.contractInstance;
   const timestamp = getContractTimestamp(logic);
   if (!logic || !logic.address) {
     throw new Error("Logic|Implementation not deployed properly");
@@ -142,20 +134,23 @@ export const deployUpgradeable = async (
   // -- encode function params for TUP
   let initData: string;
   if (args.length > 0) {
-    initData = factory.interface.encodeFunctionData("initialize", [...args]);
+    initData = logic.interface.encodeFunctionData("initialize", [...args]);
   } else {
-    initData = factory.interface._encodeParams([], []);
+    initData = logic.interface._encodeParams([], []);
   }
   console.log(`Initialize data to be used: ${initData}`);
   //* TUP - Transparent Upgradeable Proxy
-  const tuProxy = await (
-    await (
-      await TUPFactory
-    ).deploy(logic.address, proxyAdmin.address, initData, {
+  const tupDeployResult = await deploy(
+    "TUP",
+    deployer,
+    [logic.address, proxyAdmin.address, initData],
+    {
       ...GAS_OPT.max,
       value: txValue,
-    })
-  ).deployed();
+    },
+    false
+  );
+  const tuProxy = tupDeployResult.contractInstance as TransparentUpgradeableProxy;
   if (!tuProxy || !tuProxy.address) {
     throw new Error("Proxy|Storage not deployed properly");
   }
@@ -175,16 +170,16 @@ export const deployUpgradeable = async (
       logic: logic.address,
       contractName: contractName,
       deployTimestamp: await timestamp,
-      proxyTxHash: tuProxy.deployTransaction.hash,
+      proxyTxHash: tupDeployResult.deployment.deployTxHash,
       logicTxHash: logic.deployTransaction.hash,
-      byteCodeHash: keccak256(factory.bytecode),
+      byteCodeHash: keccak256(await deployer.provider!.getCode(proxyAdmin.address)),
     } as IUpgradeDeployment,
     (await adminDeployment)
       ? await adminDeployment
       : {
           address: proxyAdmin.address,
-          contractName: DEPLOY.proxyAdmin.name,
-          byteCodeHash: keccak256((await proxyAdminFactory).bytecode),
+          contractName: CONTRACTS.get("ProxyAdmin")!.name,
+          byteCodeHash: PROXY_ADMIN_CODEHASH,
         }
   );
 };

@@ -143,5 +143,5 @@ export const CONTRACTS = new Map<ContractName, IContract>([
 ]);
 
 export const TEST = {
-  accountNumber: 10,
+  accountNumber: 2,
 };
