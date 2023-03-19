@@ -28,7 +28,8 @@ contract StorageUpgr is Initializable, IStorage, OwnableUpgradeable {
   }
 
   function payMe() public payable {
-    payable(owner()).transfer(address(this).balance);
+    (bool success, ) = payable(owner()).call{ value: msg.value }("");
+    require(success, "Failed to send money");
     emit ThankYou(owner(), _msgSender(), "Thanks!!");
   }
 }

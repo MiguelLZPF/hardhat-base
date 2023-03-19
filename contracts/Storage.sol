@@ -21,8 +21,7 @@ contract Storage is IStorage, Ownable {
   }
 
   function payMe() public payable {
-    number = msg.value;
-    (bool success,) = payable(owner()).call{value: msg.value}("");
+    (bool success, ) = payable(owner()).call{ value: msg.value }("");
     require(success, "Failed to send money");
     emit ThankYou(owner(), _msgSender(), "Thanks!!");
   }
