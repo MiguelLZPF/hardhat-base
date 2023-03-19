@@ -1,4 +1,6 @@
 import { ContractName, NetworkName } from "models/Configuration";
+import { Contract } from "ethers";
+import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 
 export interface IRegularDeployment {
   address: string;
@@ -31,4 +33,17 @@ export interface INetworkDeployment {
     proxyAdmins?: IRegularDeployment[];
     contracts: (IUpgradeDeployment | IRegularDeployment)[];
   };
+}
+
+export interface IDeployReturn {
+  deployment: IRegularDeployment;
+  contractInstance: Contract;
+}
+
+export interface IUpgrDeployReturn extends Omit<IDeployReturn, "deployment"> {
+  deployment: IUpgradeDeployment;
+  adminDeployment?: IRegularDeployment;
+  logicInstance: Contract;
+  tupInstance: TransparentUpgradeableProxy | Contract;
+  proxyAdminInstance?: ProxyAdmin;
 }

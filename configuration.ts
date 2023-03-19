@@ -117,6 +117,18 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     },
   ],
   [
+    "TUP",
+    {
+      name: "TUP",
+      artifact: "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+      address: new Map([
+        ["hardhat", ""],
+        ["ganache", ""],
+        ["mainTest", ""],
+      ]),
+    },
+  ],
+  [
     "Storage",
     {
       name: "Storage",

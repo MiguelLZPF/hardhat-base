@@ -3,7 +3,13 @@ import { getContractInstance, ghre, gProvider } from "scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract, ContractReceipt, Signer, PayableOverrides, ContractFactory } from "ethers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
-import { INetworkDeployment, IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
+import {
+  IDeployReturn,
+  INetworkDeployment,
+  IRegularDeployment,
+  IUpgradeDeployment,
+  IUpgrDeployReturn,
+} from "models/Deploy";
 import yesno from "yesno";
 import { PromiseOrValue } from "typechain-types/common";
 import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
@@ -27,8 +33,8 @@ export const deploy = async (
   deployer: Signer,
   args: unknown[] = [],
   overrides?: PayableOverrides,
-  save: boolean = true
-) => {
+  save: boolean = false
+): Promise<IDeployReturn> => {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   // get the artifact of the contract name
@@ -73,9 +79,10 @@ export const deployUpgradeable = async (
   contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
-  txValue = 0,
-  proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address
-) => {
+  overrides?: PayableOverrides,
+  proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address,
+  save: boolean = false
+): Promise<IUpgrDeployReturn> => {
   //* Proxy Admin
   // save or update Proxy Admin in deployments
   let adminDeployment: Promise<IRegularDeployment | undefined> | IRegularDeployment | undefined;
@@ -141,10 +148,7 @@ export const deployUpgradeable = async (
     "TUP",
     deployer,
     [logic.address, proxyAdmin.address, initData],
-    {
-      ...GAS_OPT.max,
-      value: txValue,
-    },
+    overrides,
     false
   );
   const tuProxy = tupDeployResult.contractInstance as TransparentUpgradeableProxy;
@@ -160,25 +164,32 @@ export const deployUpgradeable = async (
       - Arguments: ${args}
   `);
   // store deployment information
-  await saveDeployment(
-    {
-      admin: proxyAdmin.address,
-      proxy: tuProxy.address,
-      logic: logic.address,
-      contractName: contractName,
-      deployTimestamp: await timestamp,
-      proxyTxHash: tupDeployResult.deployment.deployTxHash,
-      logicTxHash: logic.deployTransaction.hash,
-      byteCodeHash: keccak256(await deployer.provider!.getCode(logic.address)),
-    } as IUpgradeDeployment,
-    (await adminDeployment)
-      ? await adminDeployment
-      : {
-          address: proxyAdmin.address,
-          contractName: CONTRACTS.get("ProxyAdmin")!.name,
-          byteCodeHash: PROXY_ADMIN_CODEHASH,
-        }
-  );
+  const deployment = {
+    admin: proxyAdmin.address,
+    proxy: tuProxy.address,
+    logic: logic.address,
+    contractName: contractName,
+    deployTimestamp: await timestamp,
+    proxyTxHash: tupDeployResult.deployment.deployTxHash,
+    logicTxHash: logic.deployTransaction.hash,
+    byteCodeHash: keccak256(await deployer.provider!.getCode(logic.address)),
+  } as IUpgradeDeployment;
+  adminDeployment = (await adminDeployment)
+    ? await adminDeployment
+    : {
+        address: proxyAdmin.address,
+        contractName: CONTRACTS.get("ProxyAdmin")!.name,
+        byteCodeHash: PROXY_ADMIN_CODEHASH,
+      };
+  save ? await saveDeployment(deployment, adminDeployment) : undefined;
+  return {
+    deployment: deployment,
+    adminDeployment: adminDeployment,
+    proxyAdminInstance: proxyAdmin,
+    tupInstance: tuProxy,
+    logicInstance: logic,
+    contractInstance: new Contract(tuProxy.address, logic.interface, deployer),
+  };
 };
 
 /**

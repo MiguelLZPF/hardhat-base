@@ -6,13 +6,13 @@ import { ContractReceipt, Wallet } from "ethers";
 import { TransactionReceipt, Block, JsonRpcProvider } from "@ethersproject/providers";
 import { Mnemonic, isAddress, parseEther } from "ethers/lib/utils";
 import { generateWalletBatch } from "scripts/wallets";
-import { IStorage, Ownable } from "typechain-types";
+import { IStorage, Ownable, ProxyAdmin } from "typechain-types";
 import { ADDR_ZERO, getContractInstance, setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
-import { deploy } from "scripts/deploy";
+import { deploy, deployUpgradeable } from "scripts/deploy";
 
 // Specific Constants
-const CONTRACT_NAME = "Storage";
+const CONTRACT_NAME = "StorageUpgr";
 const STORAGE_DEPLOYED_AT = undefined;
 const INIT_VALUE = 12;
 
@@ -27,6 +27,7 @@ let lastBlock: Block;
 let admin: Wallet;
 let defaultUser: Wallet;
 // -- contracts
+let proxyAdmin: ProxyAdmin;
 let storage: IStorage & Ownable;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
@@ -61,7 +62,25 @@ describe("Storage", () => {
       });
     } else {
       step("Should deploy contract", async () => {
-        const deployResult = await deploy(CONTRACT_NAME, admin, [INIT_VALUE], GAS_OPT.max, false);
+        // deploy and "store" ProxyAdmin
+        const proxyAdminDeployResult = await deploy(
+          "ProxyAdmin",
+          admin,
+          undefined,
+          GAS_OPT.max,
+          false
+        );
+        proxyAdmin = proxyAdminDeployResult.contractInstance as ProxyAdmin;
+        // deploy Storage
+        const deployResult = await deployUpgradeable(
+          CONTRACT_NAME,
+          admin,
+          [INIT_VALUE],
+          GAS_OPT.max,
+          proxyAdmin,
+          false
+        );
+        // get the upgradeable instance as IStorage
         storage = deployResult.contractInstance as IStorage & Ownable;
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).not.to.equal(ADDR_ZERO);
