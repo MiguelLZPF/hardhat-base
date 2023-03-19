@@ -4,7 +4,7 @@ import { step } from "mocha-steps";
 import { expect } from "chai";
 import { ContractReceipt, Wallet } from "ethers";
 import { TransactionReceipt, Block, JsonRpcProvider } from "@ethersproject/providers";
-import { Mnemonic, isAddress } from "ethers/lib/utils";
+import { Mnemonic, isAddress, formatEther, parseEther } from "ethers/lib/utils";
 import { generateWalletBatch } from "scripts/wallets";
 import { IStorage, Ownable } from "typechain-types";
 import { ADDR_ZERO, getContractInstance, setGlobalHRE } from "scripts/utils";
@@ -46,7 +46,7 @@ describe("Storage", () => {
     );
     // set specific roles
     admin = accounts[0];
-    defaultUser = accounts[0];
+    defaultUser = accounts[1];
   });
 
   describe("Deployment and Initialization", () => {
@@ -147,7 +147,7 @@ describe("Storage", () => {
       storage = storage.connect(defaultUser);
     });
     step("Should pay the owner of the contract", async () => {
-      const amount = 12;
+      const amount = parseEther("13.0");
       // check initial state
       const initBalances = {
         admin: await provider.getBalance(admin.address),
@@ -156,7 +156,7 @@ describe("Storage", () => {
       expect(initBalances.admin).greaterThanOrEqual(0);
       expect(initBalances.defaultUser).greaterThanOrEqual(0);
       // pay contract
-      lastReceipt = await (await storage.payMe({...GAS_OPT.max, value: amount})).wait();
+      lastReceipt = await (await storage.payMe({ ...GAS_OPT.max, value: amount })).wait();
       expect(lastReceipt).not.to.be.undefined;
       const events = await storage.queryFilter(
         storage.filters.ThankYou(undefined, defaultUser.address),
@@ -169,8 +169,8 @@ describe("Storage", () => {
         admin: await provider.getBalance(admin.address),
         defaultUser: await provider.getBalance(defaultUser.address),
       };
-      expect(finalBalances.admin).greaterThanOrEqual(initBalances.admin);
-      expect(finalBalances.admin).greaterThanOrEqual(initBalances.admin);
+      expect(finalBalances.admin.gte(initBalances.admin)).to.be.true;
+      expect(finalBalances.defaultUser.lte(initBalances.defaultUser)).to.be.true;
     });
   });
 });
