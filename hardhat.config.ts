@@ -5,7 +5,7 @@ import { task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
 import { BigNumber, Contract, Wallet } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
-import { BLOCKCHAIN, CONTRACT, DEPLOY, KEYSTORE } from "./configuration";
+import { BLOCKCHAIN, CONTRACTS, DEPLOY, KEYSTORE } from "./configuration";
 import * as fs from "async-file";
 import { decryptWallet, generateWallet, generateWalletBatch } from "./scripts/wallets";
 import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "./scripts/deploy";
@@ -191,12 +191,7 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
 // DEPLOYMENTS
 task("deploy", "Deploy smart contracts on '--network'")
   .addFlag("upgradeable", "Deploy as upgradeable")
-  .addPositionalParam(
-    "contractName",
-    "Name of the contract to deploy",
-    CONTRACT[0].name,
-    types.string
-  )
+  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
   .addOptionalParam(
     "relativePath",
     "Path relative to KEYSTORE.root to store the wallets",
@@ -592,12 +587,12 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: BLOCKCHAIN.hardhat.chainId,
+      chainId: BLOCKCHAIN.networks.get("hardhat")!.chainId,
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
       initialBaseFeePerGas: BLOCKCHAIN.default.initialBaseFeePerGas,
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
       accounts: {
         mnemonic: KEYSTORE.default.mnemonic.phrase,
         path: KEYSTORE.default.mnemonic.basePath,
@@ -615,8 +610,10 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `http://${BLOCKCHAIN.ganache.hostname}:${BLOCKCHAIN.ganache.port}`,
-      chainId: BLOCKCHAIN.ganache.chainId,
+      url: `${BLOCKCHAIN.networks.get("ganache")?.protocol}://${
+        BLOCKCHAIN.networks.get("ganache")?.hostname
+      }:${BLOCKCHAIN.networks.get("ganache")?.port}`,
+      chainId: BLOCKCHAIN.networks.get("ganache")?.chainId,
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
@@ -633,7 +630,7 @@ const config: HardhatUserConfig = {
   typechain: {
     target: "ethers-v5",
     externalArtifacts: [
-      //! NOT WORKING: export extrange error
+      // Not working with byzantium EVM (compile)
       "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
       "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
     ],
