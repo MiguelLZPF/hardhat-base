@@ -1,27 +1,26 @@
 import { ContractName, NetworkName } from "models/Configuration";
-import { Contract } from "ethers";
+import { Contract, BytesLike } from "ethers";
 import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 
-export interface IRegularDeployment {
-  address: string;
-  contractName?: ContractName;
-  deployTxHash?: string;
+interface IDeployment {
+  contractName: ContractName;
   deployTimestamp?: Date | number | string;
-  byteCodeHash?: string;
-  tag?: string;
+  byteCodeHash?: BytesLike; // this is the "deployBytecode" not the bytecode
+  tag?: string; // open field to add metadata or any info to a deployment
 }
 
-export interface IUpgradeDeployment {
+export interface IRegularDeployment extends IDeployment {
+  address: string;
+  deployTxHash?: string;
+}
+
+export interface IUpgradeDeployment extends IDeployment {
   admin: string;
   proxy: string; // or storage
   logic: string; // or implementation
-  contractName?: ContractName;
-  proxyTxHash?: string;
-  logicTxHash?: string;
-  deployTimestamp?: Date | number | string;
+  proxyDeployTxHash?: string;
+  logicDeployTxHash?: string;
   upgradeTimestamp?: Date | number | string;
-  byteCodeHash?: string;
-  tag?: string;
 }
 
 export interface INetworkDeployment {
@@ -46,4 +45,8 @@ export interface IUpgrDeployReturn extends Omit<IDeployReturn, "deployment"> {
   logicInstance: Contract;
   tupInstance: TransparentUpgradeableProxy | Contract;
   proxyAdminInstance?: ProxyAdmin;
+}
+
+export interface IUpgradeReturn extends Omit<IDeployReturn, "deployment"> {
+  deployment: IUpgradeDeployment;
 }
