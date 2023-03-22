@@ -1,13 +1,18 @@
+import { ContractName } from "models/Configuration";
+
 //* Tasks Interfaces
-export interface IGenerateWallets {
+export interface ISignerInformation {
   relativePath?: string;
-  password?: string;
-  entropy?: string;
+  password: string;
   privateKey?: string;
   mnemonicPhrase?: string;
-  mnemonicPath?: string;
-  mnemonicLocale?: string;
+  mnemonicPath: string;
+  mnemonicLocale: string;
+}
+
+export interface IGenerateWallets extends ISignerInformation {
   batchSize?: number;
+  entropy?: string;
   type: string;
   connect: boolean;
 }
@@ -26,44 +31,33 @@ export interface IGetMnemonic {
   password: string;
 }
 
-export interface IDeploy {
+export interface IDeploy extends ISignerInformation {
   upgradeable: boolean;
-  contractName: string;
-  relativePath?: string;
-  password: string;
-  mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
+  contractName: ContractName;
   proxyAdmin: string;
   contractArgs: any;
+  initialize?: boolean;
   noCompile: boolean;
   txValue: number;
+  tag?: string;
 }
 
-export interface IUpgrade {
-  contractName: string;
-  relativePath?: string;
-  password: string;
-  mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
+export interface IUpgrade extends ISignerInformation {
+  contractName: ContractName;
   proxy: string;
   proxyAdmin: string;
   contractArgs: any;
+  initialize?: boolean;
+  tag?: string;
   noCompile: boolean;
 }
 
-export interface ICallContract {
-  contractName: string;
+export interface ICallContract extends ISignerInformation {
+  contractName: ContractName;
   contractAddress: string;
   functionName: string;
   functionArgs: any;
   artifactPath: string;
-  relativePath?: string;
-  password: string;
-  mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
 }
 
 export interface IGetLogic {
@@ -71,13 +65,8 @@ export interface IGetLogic {
   proxyAdmin?: string;
 }
 
-export interface IChangeLogic {
+export interface IChangeLogic extends ISignerInformation {
   proxy: string;
   proxyAdmin?: string;
   newLogic: string;
-  relativePath?: string;
-  password: string;
-  mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
 }

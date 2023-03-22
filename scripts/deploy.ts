@@ -8,6 +8,7 @@ import {
   INetworkDeployment,
   IRegularDeployment,
   IUpgradeDeployment,
+  IUpgradeReturn,
   IUpgrDeployReturn,
 } from "models/Deploy";
 import yesno from "yesno";
@@ -17,7 +18,7 @@ import { readFileSync, writeFileSync, existsSync } from "fs";
 import { chainIdToNetwork, ContractName } from "models/Configuration";
 
 const PROXY_ADMIN_ARTIFACT = JSON.parse(
-  readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, { encoding: "utf-8" })
+  readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, "utf-8")
 );
 const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
 
@@ -32,15 +33,14 @@ export const deploy = async (
   contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
+  tag?: string,
   overrides?: PayableOverrides,
   save: boolean = false
 ): Promise<IDeployReturn> => {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   // get the artifact of the contract name
-  const artifact = JSON.parse(
-    readFileSync(CONTRACTS.get(contractName)!.artifact, { encoding: "utf-8" })
-  );
+  const artifact = JSON.parse(readFileSync(CONTRACTS.get(contractName)!.artifact, "utf-8"));
   // create factory instance and deploy
   const factory = new ContractFactory(artifact.abi, artifact.bytecode, deployer);
   // actual deployment
@@ -59,6 +59,7 @@ export const deploy = async (
     deployTimestamp: await getContractTimestamp(contract, receipt.transactionHash),
     deployTxHash: receipt.transactionHash,
     byteCodeHash: keccak256(await gProvider.getCode(contract.address)),
+    tag: tag,
   };
   save ? await saveDeployment(deployment) : undefined;
   return {
@@ -79,8 +80,10 @@ export const deployUpgradeable = async (
   contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
+  tag?: string,
   overrides?: PayableOverrides,
   proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address,
+  initialize: boolean = false,
   save: boolean = false
 ): Promise<IUpgrDeployReturn> => {
   //* Proxy Admin
@@ -107,7 +110,14 @@ export const deployUpgradeable = async (
       if (!ok) {
         throw new Error("Deployment aborted");
       }
-      const deployResult = await deploy("ProxyAdmin", deployer, undefined, undefined, false);
+      const deployResult = await deploy(
+        "ProxyAdmin",
+        deployer,
+        undefined,
+        undefined,
+        undefined,
+        false
+      );
       proxyAdmin = deployResult.contractInstance as ProxyAdmin;
       adminDeployment = deployResult.deployment;
     }
@@ -128,7 +138,14 @@ export const deployUpgradeable = async (
     ? adminDeployment
     : getProxyAdminDeployment(undefined, proxyAdmin.address);
   //* Actual contracts
-  const deployResult = await deploy(contractName, deployer, undefined, GAS_OPT.max, false);
+  const deployResult = await deploy(
+    contractName,
+    deployer,
+    undefined,
+    undefined,
+    GAS_OPT.max,
+    false
+  );
   const logic = deployResult.contractInstance;
   const timestamp = getContractTimestamp(logic);
   if (!logic || !logic.address) {
@@ -137,7 +154,7 @@ export const deployUpgradeable = async (
   console.log(`Logic contract deployed at: ${logic.address}`);
   // -- encode function params for TUP
   let initData: string;
-  if (args.length > 0) {
+  if (initialize) {
     initData = logic.interface.encodeFunctionData("initialize", [...args]);
   } else {
     initData = logic.interface._encodeParams([], []);
@@ -148,6 +165,7 @@ export const deployUpgradeable = async (
     "TUP",
     deployer,
     [logic.address, proxyAdmin.address, initData],
+    undefined,
     overrides,
     false
   );
@@ -170,9 +188,10 @@ export const deployUpgradeable = async (
     logic: logic.address,
     contractName: contractName,
     deployTimestamp: await timestamp,
-    proxyTxHash: tupDeployResult.deployment.deployTxHash,
-    logicTxHash: logic.deployTransaction.hash,
+    proxyDeployTxHash: tupDeployResult.deployment.deployTxHash,
+    logicDeployTxHash: logic.deployTransaction.hash,
     byteCodeHash: keccak256(await deployer.provider!.getCode(logic.address)),
+    tag: tag,
   } as IUpgradeDeployment;
   adminDeployment = (await adminDeployment)
     ? await adminDeployment
@@ -205,8 +224,10 @@ export const upgrade = async (
   deployer: Signer,
   args: unknown[],
   proxy: string,
-  proxyAdmin?: string | ProxyAdmin
-) => {
+  proxyAdmin?: string | ProxyAdmin,
+  initialize: boolean = false,
+  save: boolean = false
+): Promise<IUpgradeReturn> => {
   let contractDeployment: PromiseOrValue<IUpgradeDeployment> = getContractDeployment(
     proxy
   ) as Promise<IUpgradeDeployment>;
@@ -243,7 +264,14 @@ export const upgrade = async (
     throw new Error(`ERROR: ProxyAdmin(${proxyAdmin.address}) is not a ProxyAdmin Contract`);
   }
   //* Actual contracts
-  const deployResult = await deploy(contractName, deployer, undefined, GAS_OPT.max, false);
+  const deployResult = await deploy(
+    contractName,
+    deployer,
+    undefined,
+    undefined,
+    GAS_OPT.max,
+    false
+  );
   const newLogic = deployResult.contractInstance;
   const timestamp = getContractTimestamp(newLogic);
   if (!newLogic || !newLogic.address) {
@@ -253,7 +281,7 @@ export const upgrade = async (
 
   // -- encode function params for TUP
   let initData: string;
-  if (args.length > 0) {
+  if (initialize) {
     initData = newLogic.interface.encodeFunctionData("initialize", [...args]);
   } else {
     initData = newLogic.interface._encodeParams([], []);
@@ -308,13 +336,20 @@ export const upgrade = async (
       - New Logic: ${await newLogicFromAdmin}
       - Arguments: ${args}
   `);
-  // store deployment information
+  // update deployment information
   contractDeployment.logic = newLogic.address;
   contractDeployment.contractName = contractName;
-  contractDeployment.logicTxHash = newLogic.deployTransaction.hash;
+  contractDeployment.logicDeployTxHash = newLogic.deployTransaction.hash;
   contractDeployment.byteCodeHash = keccak256(await deployer.provider!.getCode(newLogic.address));
   contractDeployment.upgradeTimestamp = await timestamp;
-  await saveDeployment(contractDeployment);
+  if (save) {
+    // store deployment information
+    await saveDeployment(contractDeployment);
+  }
+  return {
+    deployment: contractDeployment,
+    contractInstance: new Contract(contractDeployment.proxy, newLogic.interface, deployer),
+  };
 };
 
 export const getLogic = async (
@@ -554,7 +589,7 @@ const getActualNetDeployment = async (hre?: HardhatRuntimeEnvironment) => {
   let deployments: INetworkDeployment[] = [];
   // if the file exists, get previous data
   if (existsSync(DEPLOY.deploymentsPath)) {
-    deployments = JSON.parse(readFileSync(DEPLOY.deploymentsPath, { encoding: "utf-8" }));
+    deployments = JSON.parse(readFileSync(DEPLOY.deploymentsPath, "utf-8"));
   } else {
     console.warn("WARN: no deplyments file, createing a new one...");
   }

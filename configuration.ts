@@ -74,7 +74,7 @@ export const BLOCKCHAIN = {
     [
       "mainTest",
       {
-        chainId: 1337,
+        chainId: 1666,
         name: "mainTest",
         protocol: "http",
         hostname: "192.168.12.207",
@@ -120,7 +120,8 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     "TUP",
     {
       name: "TUP",
-      artifact: "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+      artifact:
+        "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
       address: new Map([
         ["hardhat", ""],
         ["ganache", ""],
