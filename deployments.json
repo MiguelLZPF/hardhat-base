@@ -1,27 +1,27 @@
 [
   {
-    "network": { "name": "ganache", "chainId": 1337 },
+    "network": { "name": "hardhat", "chainId": 31337 },
     "smartContracts": {
       "proxyAdmins": [
         {
           "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
           "contractName": "ProxyAdmin",
-          "deployTimestamp": "2022-11-27T14:34:08.000Z",
-          "deployTxHash": "0xa54180834b716dba37a307a2a7538cabe3f8eb6b3764d7c4b1bba57a12efb8da",
-          "byteCodeHash": "0xe3d3f5223788f4f9b795dfaa328102945ea67dcd9bb70e0f895ee93be0c1376a"
+          "deployTimestamp": "2023-03-22T20:15:35.000Z",
+          "deployTxHash": "0xcbdb9d6651584274614f9158099e039ae5dca1fe80d01203c86de3f0f9aa5f98",
+          "byteCodeHash": "0xd379ac778980637ca891676cc23285e97f58adaa6a87f8ba43e3f49876718ce3"
         }
       ],
       "contracts": [
         {
           "admin": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
           "proxy": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
-          "logic": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
-          "contractName": "LockUpgr",
-          "deployTimestamp": "2022-11-27T14:34:08.000Z",
-          "proxyTxHash": "0xc825601a9e5978a95fe304d8d5ce1398f9da1cb16583791dc34620420bda2255",
-          "logicTxHash": "0x329d37bf940f62ef8945fafa9d466a5a844506902cb94634cd73d740207fd6f9",
-          "byteCodeHash": "0xfe1608f3b4791c521a71b28db8c7655b10f76033c0242ff886047e09ec4883d5",
-          "upgradeTimestamp": "2022-11-27T14:34:40.000Z"
+          "logic": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+          "contractName": "StorageUpgr",
+          "deployTimestamp": "2023-03-22T20:15:36.000Z",
+          "proxyDeployTxHash": "0x1080e83ebc904fa35d792aa2e28bc5bf80e908044ea991de09c0899d36d658e3",
+          "logicDeployTxHash": "0x673e9d0a325b7b96536bb3f79e7ffbf965ef23d934051dcc234d787046a89464",
+          "byteCodeHash": "0x9343712a3ddd133f525146026d3e323e8cca52dfbed4833046cb3deae5a53b53",
+          "tag": "example"
         }
       ]
     }

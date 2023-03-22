@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { ContractReceipt, Wallet } from "ethers";
 import { TransactionReceipt, Block, JsonRpcProvider } from "@ethersproject/providers";
 import { Mnemonic, isAddress, parseEther } from "ethers/lib/utils";
-import { generateWalletBatch } from "scripts/wallets";
+import { generateWallets } from "scripts/wallets";
 import { IStorage, Ownable } from "typechain-types";
 import { ADDR_ZERO, getContractInstance, setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
@@ -34,7 +34,7 @@ describe("Storage", () => {
     lastBlock = await provider.getBlock("latest");
     console.log(`Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    accounts = await generateWalletBatch(
+    accounts = await generateWallets(
       undefined,
       undefined,
       TEST.accountNumber,
