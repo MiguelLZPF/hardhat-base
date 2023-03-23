@@ -1,73 +1,52 @@
-import { BLOCKCHAIN } from "../configuration";
+import { ContractName, NetworkName } from "models/Configuration";
+import { Contract, BytesLike } from "ethers";
+import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 
-export interface INetwork {
-  chainId: number;
-  name: string;
-  url: string;
-}
-
-export const networks = new Map<number | undefined, INetwork>([
-  [
-    undefined,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ], // Default hardhat
-  [
-    0,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ], // Default hardhat
-  [
-    BLOCKCHAIN.hardhat.chainId,
-    {
-      chainId: BLOCKCHAIN.hardhat.chainId,
-      name: "hardhat",
-      url: `http://${BLOCKCHAIN.hardhat.hostname}:${BLOCKCHAIN.hardhat.port}`,
-    },
-  ],
-  [
-    BLOCKCHAIN.ganache.chainId,
-    {
-      chainId: BLOCKCHAIN.ganache.chainId,
-      name: "ganache",
-      url: `http://${BLOCKCHAIN.ganache.hostname}:${BLOCKCHAIN.ganache.port}`,
-    },
-  ],
-]);
-
-export interface IRegularDeployment {
-  address: string;
-  contractName?: string;
-  deployTxHash?: string;
+interface IDeployment {
+  contractName: ContractName;
   deployTimestamp?: Date | number | string;
-  byteCodeHash?: string;
+  byteCodeHash?: BytesLike; // this is the "deployBytecode" not the bytecode
+  tag?: string; // open field to add metadata or any info to a deployment
 }
 
-export interface IUpgradeDeployment {
+export interface IRegularDeployment extends IDeployment {
+  address: string;
+  deployTxHash?: string;
+}
+
+export interface IUpgradeDeployment extends IDeployment {
   admin: string;
   proxy: string; // or storage
   logic: string; // or implementation
-  contractName?: string;
-  proxyTxHash?: string;
-  logicTxHash?: string;
-  deployTimestamp?: Date | number | string;
+  proxyDeployTxHash?: string;
+  logicDeployTxHash?: string;
   upgradeTimestamp?: Date | number | string;
-  byteCodeHash?: string;
 }
 
 export interface INetworkDeployment {
   network: {
-    name: string;
-    chainId: number | string;
+    name: NetworkName;
+    chainId: number;
   };
   smartContracts: {
     proxyAdmins?: IRegularDeployment[];
     contracts: (IUpgradeDeployment | IRegularDeployment)[];
   };
+}
+
+export interface IDeployReturn {
+  deployment: IRegularDeployment;
+  contractInstance: Contract;
+}
+
+export interface IUpgrDeployReturn extends Omit<IDeployReturn, "deployment"> {
+  deployment: IUpgradeDeployment;
+  adminDeployment?: IRegularDeployment;
+  logicInstance: Contract;
+  tupInstance: TransparentUpgradeableProxy | Contract;
+  proxyAdminInstance?: ProxyAdmin;
+}
+
+export interface IUpgradeReturn extends Omit<IDeployReturn, "deployment"> {
+  deployment: IUpgradeDeployment;
 }

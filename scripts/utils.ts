@@ -1,15 +1,16 @@
-import * as fs from "async-file";
-import util from "util";
-import { constants } from "ethers";
+import { BLOCKCHAIN, CONTRACTS } from "configuration";
+import { chainIdToNetwork, ContractName, INetwork } from "models/Configuration";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { Contract, constants, Signer, ContractFactory } from "ethers";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
-import { INetwork, networks } from "../models/Deploy";
+import { existsSync, mkdirSync, readFileSync } from "fs";
+import util from "util";
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
 export let gEthers: HardhatRuntimeEnvironment["ethers"];
 export let gProvider: JsonRpcProvider;
-export let gCurrentNetwork: INetwork;
+export let gNetwork: INetwork;
 
 export const ADDR_ZERO = constants.AddressZero;
 
@@ -22,22 +23,32 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
-  gCurrentNetwork = networks.get(
-    gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
+  gNetwork = BLOCKCHAIN.networks.get(
+    chainIdToNetwork.get(
+      gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
+    )
   )!;
-  return { gProvider, gCurrentNetwork };
+  return { gProvider, gNetwork };
 };
 
 /**
- * Check if directories are present, if they aren't, create them
- * @param reqDirectories Required directories tree in hierarchical order
+ * Create a new instance of a deployed contract
+ * @param contractName name that identifies a contract in the context of this project
+ * @param signer (optional) [undefined] signer to be used to sign TXs by default
+ * @param contractAddr (optional) [Contracts.<contractName>.<network>.address] address of the deployed contract
+ * @returns instance of the contract attached to contractAddr and connected to signer or provider
  */
-export const checkDirectories = async (reqDirectories: string[]) => {
-  for (const directory of reqDirectories) {
-    if (!(await fs.exists(directory))) {
-      await fs.mkdir(directory);
-    }
-  }
+export const getContractInstance = async (
+  contractName: ContractName,
+  signer?: Signer,
+  contractAddr?: string
+): Promise<Contract> => {
+  const artifact = JSON.parse(readFileSync(CONTRACTS.get(contractName)!.artifact, "utf-8"));
+  const factory = new ContractFactory(artifact.abi, artifact.bytecode, signer);
+  const contract = factory.attach(
+    contractAddr || CONTRACTS.get(contractName)!.address.get(gNetwork.name)!
+  );
+  return signer ? contract : contract.connect(gProvider);
 };
 
 /**
@@ -55,21 +66,26 @@ export const checkDirectoriesInPath = async (reqPath: string) => {
   await checkDirectories(directories);
 };
 
-export const getTimeStamp = async (block?: BlockTag, provider?: JsonRpcProvider) => {
-  provider = provider ? provider : gProvider;
-  if (block) {
-    return (await provider.getBlock(block)).timestamp;
-  } else {
-    return (await provider.getBlock("latest")).timestamp;
+/**
+ * Check if directories are present, if they aren't, create them
+ * @param reqDirectories Required directories tree in hierarchical order
+ */
+export const checkDirectories = async (reqDirectories: string[]) => {
+  for (const directory of reqDirectories) {
+    if (!existsSync(directory)) {
+      mkdirSync(directory);
+    }
   }
 };
 
-export const stringToStringHexFixed = async (inputString: string, length: number) => {
-  const nameBuffer = Buffer.from(inputString, "utf-8");
-  const nameInBytes = nameBuffer.toString("hex");
-  return `0x${nameInBytes}${Buffer.from(new Uint8Array(length - nameBuffer.byteLength)).toString(
-    "hex"
-  )}`;
+/**
+ *
+ * @param block (optional) [latest] block number or hash that reference the block to get the timestamp
+ * @param provider (optional) [gProvider] the provider to use
+ * @returns the timestamp in seconds
+ */
+export const getTimeStamp = async (block?: BlockTag, provider: JsonRpcProvider = gProvider) => {
+  return (await provider.getBlock(block || "latest")).timestamp;
 };
 
 /**
