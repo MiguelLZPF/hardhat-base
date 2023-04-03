@@ -5,7 +5,7 @@ import { subtask, task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
 import { BigNumber, Wallet } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
-import { BLOCKCHAIN, DEPLOY, GAS_OPT, KEYSTORE } from "configuration";
+import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
 import { decryptWallet, generateWallet, generateWallets } from "scripts/wallets";
 import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "scripts/deploy";
 import { getContractInstance, setGlobalHRE } from "scripts/utils";
@@ -260,7 +260,7 @@ task("deploy", "Deploy smart contracts on '--network'")
   .addOptionalParam(
     "proxyAdmin",
     "Address of a deloyed Proxy Admin. Only if --upgradeable deployment",
-    DEPLOY.proxyAdmin.address,
+    undefined,
     types.string
   )
   .addOptionalParam(
@@ -360,12 +360,7 @@ task("deploy", "Deploy smart contracts on '--network'")
 task("upgrade", "Upgrade smart contracts on '--network'")
   .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
   .addPositionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
-  .addOptionalParam(
-    "proxyAdmin",
-    "Address of a deloyed Proxy Admin",
-    DEPLOY.proxyAdmin.address,
-    types.string
-  )
+  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
   .addOptionalParam(
     "contractArgs",
     "Contract initialize function's arguments if any",

@@ -1,4 +1,12 @@
-import { ContractName, Hardfork, IContract, INetwork, NetworkName } from "models/Configuration";
+import {
+  ContractName,
+  CONTRACT_NAMES,
+  CONTRACT_OZ_NAMES,
+  Hardfork,
+  IContract,
+  INetwork,
+  NetworkName,
+} from "models/Configuration";
 
 /**
  * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
@@ -97,18 +105,14 @@ export const GAS_OPT = {
 
 export const DEPLOY = {
   deploymentsPath: "deployments.json",
-  proxyAdmin: {
-    name: "ProxyAdmin",
-    address: "", // "0xa978565B473049af66e883C471a725B3C1405f6b", // this address is used as default proxyAdmin for upgradeable deployments
-  },
 };
 
 export const CONTRACTS = new Map<ContractName, IContract>([
   [
-    "ProxyAdmin",
+    CONTRACT_OZ_NAMES[0],
     {
-      name: "ProxyAdmin",
-      artifact: "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
+      name: CONTRACT_OZ_NAMES[0],
+      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_OZ_NAMES[0]}.json`,
       address: new Map([
         ["hardhat", ""],
         ["ganache", ""],
@@ -117,11 +121,10 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     },
   ],
   [
-    "TUP",
+    CONTRACT_OZ_NAMES[1],
     {
-      name: "TUP",
-      artifact:
-        "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+      name: CONTRACT_OZ_NAMES[1],
+      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_OZ_NAMES[1]}.json`,
       address: new Map([
         ["hardhat", ""],
         ["ganache", ""],
@@ -130,10 +133,10 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     },
   ],
   [
-    "Storage",
+    CONTRACT_NAMES[0],
     {
-      name: "Storage",
-      artifact: "artifacts/contracts/Storage.sol/Storage.json",
+      name: CONTRACT_NAMES[0],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[0]}.sol/${CONTRACT_NAMES[0]}.json`,
       address: new Map([
         ["hardhat", ""],
         ["ganache", ""],
@@ -142,10 +145,10 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     },
   ],
   [
-    "StorageUpgr",
+    CONTRACT_NAMES[1],
     {
-      name: "StorageUpgr",
-      artifact: "artifacts/contracts/StorageUpgr.sol/StorageUpgr.json",
+      name: CONTRACT_NAMES[1],
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[1]}.sol/${CONTRACT_NAMES[1]}.json`,
       address: new Map([
         ["hardhat", ""],
         ["ganache", ""],

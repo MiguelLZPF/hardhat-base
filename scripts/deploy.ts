@@ -1,5 +1,5 @@
 import { BLOCKCHAIN, CONTRACTS, DEPLOY, GAS_OPT } from "configuration";
-import { getContractInstance, ghre, gProvider } from "scripts/utils";
+import { chainIdToNetwork, getContractInstance, ghre, gNetwork, gProvider } from "scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract, ContractReceipt, Signer, PayableOverrides, ContractFactory } from "ethers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
@@ -15,7 +15,7 @@ import yesno from "yesno";
 import { PromiseOrValue } from "typechain-types/common";
 import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 import { readFileSync, writeFileSync, existsSync } from "fs";
-import { chainIdToNetwork, ContractName } from "models/Configuration";
+import { ContractName } from "models/Configuration";
 
 const PROXY_ADMIN_ARTIFACT = JSON.parse(
   readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, "utf-8")
@@ -82,7 +82,9 @@ export const deployUpgradeable = async (
   args: unknown[] = [],
   tag?: string,
   overrides?: PayableOverrides,
-  proxyAdmin: string | ProxyAdmin = DEPLOY.proxyAdmin.address,
+  proxyAdmin: string | ProxyAdmin | undefined = CONTRACTS.get("ProxyAdmin")?.address.get(
+    gNetwork.name
+  ),
   initialize: boolean = false,
   save: boolean = false
 ): Promise<IUpgrDeployReturn> => {
