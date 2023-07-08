@@ -67,6 +67,7 @@ describe("Storage", () => {
           "ProxyAdmin",
           admin,
           undefined,
+          undefined,
           GAS_OPT.max,
           false
         );
@@ -76,6 +77,7 @@ describe("Storage", () => {
           CONTRACT_NAME,
           admin,
           [INIT_VALUE],
+          undefined,
           GAS_OPT.max,
           proxyAdmin,
           false

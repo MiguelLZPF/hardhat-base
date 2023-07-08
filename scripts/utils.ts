@@ -1,5 +1,5 @@
 import { BLOCKCHAIN, CONTRACTS } from "configuration";
-import { chainIdToNetwork, ContractName, INetwork } from "models/Configuration";
+import { ContractName, INetwork, NetworkName } from "models/Configuration";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Contract, constants, Signer, ContractFactory } from "ethers";
 import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
@@ -30,6 +30,13 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   )!;
   return { gProvider, gNetwork };
 };
+
+export const chainIdToNetwork = new Map<number | undefined, NetworkName>([
+  [undefined, "hardhat"],
+  [BLOCKCHAIN.networks.get("hardhat")!.chainId, "hardhat"],
+  [BLOCKCHAIN.networks.get("ganache")!.chainId, "ganache"],
+  [BLOCKCHAIN.networks.get("mainTest")!.chainId, "mainTest"],
+]);
 
 /**
  * Create a new instance of a deployed contract

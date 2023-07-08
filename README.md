@@ -8,6 +8,7 @@ The structure follows a Hardhat project environment using **ethers**, **waffle**
 
 - [1. Hardhat Off-Chain Deplyments Base - HHOCDB](#1-hardhat-off-chain-deplyments-base---hhocdb)
   - [1.1. Custom Tasks added](#11-custom-tasks-added)
+    - [AVAILABLE TASKS:](#available-tasks)
   - [1.2. Configuration file constants](#12-configuration-file-constants)
   - [1.3. Manage Encryped JSON Wallets](#13-manage-encryped-json-wallets)
     - [1.3.1. Relevant Constants](#131-relevant-constants)
@@ -25,39 +26,35 @@ The structure follows a Hardhat project environment using **ethers**, **waffle**
 
 ## 1.1. Custom Tasks added
 
-Marked tasks are the ones provided by this project "-->"
+Marked **tasks** are the ones provided by this project:
 
 **PLEASE USE: `npx hardhat --help` and `npx hardat {{TASK_NAME}} --help`**
 
-```text
-AVAILABLE TASKS:
-
-  --> call-contract         Call a contract function (this does not change contract storage or state)
-  --> change-logic          change the actual logic|implementation smart contract of a TUP proxy
-  check                 Check whatever you need
-  clean                 Clears the cache and deletes all artifacts
-  compile               Compiles the entire project, building all artifacts
-  console               Opens a hardhat console
-  coverage              Generates a code coverage report for tests
-  --> deploy                Deploy smart contracts on '--network'
-  flatten               Flattens and prints contracts and their dependencies
-  gas-reporter:merge
-  --> generate-wallets      Generates Encryped JSON persistent wallets
-  --> get-logic             Check what logic|implementation smart contract address is currently using a given proxy
-  --> get-mnemonic          Recover mnemonic phrase from an encrypted wallet
-  --> get-timestamp         get the current timestamp in seconds
-  --> get-wallet-info       Recover all information from an encrypted wallet
-  help                  Prints this message
-  node                  Starts a JSON-RPC server on top of Hardhat Network
-  --> quick-test            Random quick testing function
-  run                   Runs a user-defined script after compiling the project
-  size-contracts        Output the size of compiled contracts
-  test                  Runs mocha tests
-  typechain             Generate Typechain typings for compiled contracts
-  --> upgrade               Upgrade smart contracts on '--network'
-  verify                Verifies contract on Etherscan
-
-```
+### AVAILABLE TASKS:
+  - **call-contract**: Call a contract function (this does not change contract storage or state)
+  - **change-logic**: change the actual logic|implementation smart contract of a TUP proxy
+  - check                 Check whatever you need
+  - clean                 Clears the cache and deletes all artifacts
+  - compile               Compiles the entire project, building all artifacts
+  - console               Opens a hardhat console
+  - coverage              Generates a code coverage report for tests
+  - **deploy**                Deploy smart contracts on '--network'
+  - flatten               Flattens and prints contracts and their dependencies. If no file is passed, all the contracts in the project will be flattened.
+  - gas-reporter:merge
+  - **generate-wallets**      Generates Encryped JSON persistent wallets
+  - **get-logic**             Check what logic|implementation smart contract address is currently using a given proxy
+  - **get-mnemonic**          Recover mnemonic phrase from an encrypted wallet
+  - **get-timestamp**         get the current timestamp in seconds
+  - **get-wallet-info**       Recover all information from an encrypted wallet or an HD Wallet
+  - help                  Prints this message
+  - node                  Starts a JSON-RPC server on top of Hardhat Network
+  - **quick-test**            Random quick testing function
+  - run                   Runs a user-defined script after compiling the project
+  - size-contracts        Output the size of compiled contracts
+  - test                  Runs mocha tests
+  - typechain             Generate Typechain typings for compiled contracts
+  - **upgrade**               Upgrade smart contracts on '--network'
+  - verify                Verifies contract on Etherscan
 
 ## 1.2. Configuration file constants
 

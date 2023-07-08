@@ -12,16 +12,8 @@ export type { Initializable } from "./artifacts/@openzeppelin/contracts-upgradea
 export { Initializable__factory } from "./factories/artifacts/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable__factory";
 export type { ContextUpgradeable } from "./artifacts/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable";
 export { ContextUpgradeable__factory } from "./factories/artifacts/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable__factory";
-export type { AccessControl } from "./artifacts/@openzeppelin/contracts/access/AccessControl";
-export { AccessControl__factory } from "./factories/artifacts/@openzeppelin/contracts/access/AccessControl__factory";
-export type { IAccessControl } from "./artifacts/@openzeppelin/contracts/access/IAccessControl";
-export { IAccessControl__factory } from "./factories/artifacts/@openzeppelin/contracts/access/IAccessControl__factory";
 export type { Ownable } from "./artifacts/@openzeppelin/contracts/access/Ownable";
 export { Ownable__factory } from "./factories/artifacts/@openzeppelin/contracts/access/Ownable__factory";
-export type { ERC165 } from "./artifacts/@openzeppelin/contracts/utils/introspection/ERC165";
-export { ERC165__factory } from "./factories/artifacts/@openzeppelin/contracts/utils/introspection/ERC165__factory";
-export type { IERC165 } from "./artifacts/@openzeppelin/contracts/utils/introspection/IERC165";
-export { IERC165__factory } from "./factories/artifacts/@openzeppelin/contracts/utils/introspection/IERC165__factory";
 export type { IStorage } from "./artifacts/contracts/interfaces/IStorage";
 export { IStorage__factory } from "./factories/artifacts/contracts/interfaces/IStorage__factory";
 export type { Storage } from "./artifacts/contracts/Storage";

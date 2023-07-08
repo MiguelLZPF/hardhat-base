@@ -61,7 +61,14 @@ describe("Storage", () => {
       });
     } else {
       step("Should deploy contract", async () => {
-        const deployResult = await deploy(CONTRACT_NAME, admin, [INIT_VALUE], GAS_OPT.max, false);
+        const deployResult = await deploy(
+          CONTRACT_NAME,
+          admin,
+          [INIT_VALUE],
+          undefined,
+          GAS_OPT.max,
+          false
+        );
         storage = deployResult.contractInstance as IStorage & Ownable;
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).not.to.equal(ADDR_ZERO);

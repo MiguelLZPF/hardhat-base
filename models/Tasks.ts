@@ -34,7 +34,7 @@ export interface IGetMnemonic {
 export interface IDeploy extends ISignerInformation {
   upgradeable: boolean;
   contractName: ContractName;
-  proxyAdmin: string;
+  proxyAdmin?: string;
   contractArgs: any;
   initialize?: boolean;
   noCompile: boolean;
@@ -45,7 +45,7 @@ export interface IDeploy extends ISignerInformation {
 export interface IUpgrade extends ISignerInformation {
   contractName: ContractName;
   proxy: string;
-  proxyAdmin: string;
+  proxyAdmin?: string;
   contractArgs: any;
   initialize?: boolean;
   tag?: string;
