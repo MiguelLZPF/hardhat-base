@@ -1,4 +1,4 @@
-# 1. Hardhat Off-Chain Deplyments Base - HHOCDB
+# 1. Hardhat Off-Chain Deplyments Base - HHoffCDB
 
 Before run anything, make sure you run `npm install`.
 
