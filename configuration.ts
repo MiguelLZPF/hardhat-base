@@ -1,7 +1,6 @@
 import {
   ContractName,
   CONTRACT_NAMES,
-  CONTRACT_OZ_NAMES,
   Hardfork,
   IContract,
   INetwork,
@@ -39,11 +38,11 @@ export const KEYSTORE = {
  */
 export const BLOCKCHAIN = {
   default: {
-    solVersion: "0.8.19",
+    solVersion: "0.8.20",
     evm: "london" as Hardfork,
-    gasLimit: 800000,
+    gasLimit: 8000000,
     gasPrice: 0,
-    maxFeePerGas: 900000000,
+    maxFeePerGas: 9000000000,
     maxPriorityFeePerGas: 100,
     initialBaseFeePerGas: 7,
   },
@@ -85,7 +84,7 @@ export const BLOCKCHAIN = {
         chainId: 1666,
         name: "mainTest",
         protocol: "http",
-        hostname: "192.168.12.207",
+        hostname: "192.168.12.32",
         port: 8545,
         dbPath: ".ganache-db",
       },
@@ -109,38 +108,14 @@ export const DEPLOY = {
 
 export const CONTRACTS = new Map<ContractName, IContract>([
   [
-    CONTRACT_OZ_NAMES[0],
-    {
-      name: CONTRACT_OZ_NAMES[0],
-      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_OZ_NAMES[0]}.json`,
-      address: new Map([
-        ["hardhat", ""],
-        ["ganache", ""],
-        ["mainTest", ""],
-      ]),
-    },
-  ],
-  [
-    CONTRACT_OZ_NAMES[1],
-    {
-      name: CONTRACT_OZ_NAMES[1],
-      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_OZ_NAMES[1]}.json`,
-      address: new Map([
-        ["hardhat", ""],
-        ["ganache", ""],
-        ["mainTest", ""],
-      ]),
-    },
-  ],
-  [
     CONTRACT_NAMES[0],
     {
       name: CONTRACT_NAMES[0],
-      artifact: `artifacts/contracts/${CONTRACT_NAMES[0]}.sol/${CONTRACT_NAMES[0]}.json`,
+      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_NAMES[0]}.json`,
       address: new Map([
-        ["hardhat", ""],
-        ["ganache", ""],
-        ["mainTest", ""],
+        ["hardhat", undefined],
+        ["ganache", undefined],
+        ["mainTest", undefined],
       ]),
     },
   ],
@@ -148,11 +123,35 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     CONTRACT_NAMES[1],
     {
       name: CONTRACT_NAMES[1],
-      artifact: `artifacts/contracts/${CONTRACT_NAMES[1]}.sol/${CONTRACT_NAMES[1]}.json`,
+      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_NAMES[1]}.json`,
       address: new Map([
-        ["hardhat", ""],
-        ["ganache", ""],
-        ["mainTest", ""],
+        ["hardhat", undefined],
+        ["ganache", undefined],
+        ["mainTest", undefined],
+      ]),
+    },
+  ],
+  [
+    CONTRACT_NAMES[2],
+    {
+      name: CONTRACT_NAMES[2],
+      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
+      address: new Map([
+        ["hardhat", undefined],
+        ["ganache", undefined],
+        ["mainTest", undefined],
+      ]),
+    },
+  ],
+  [
+    CONTRACT_NAMES[3],
+    {
+      name: CONTRACT_NAMES[3],
+      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
+      address: new Map([
+        ["hardhat", undefined],
+        ["ganache", undefined],
+        ["mainTest", undefined],
       ]),
     },
   ],

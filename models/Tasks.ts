@@ -31,6 +31,8 @@ export interface IGetMnemonic {
   password: string;
 }
 
+//* Deployments
+// Deploy with option to deploy upgradeable
 export interface IDeploy extends ISignerInformation {
   upgradeable: boolean;
   contractName: ContractName;
@@ -42,14 +44,8 @@ export interface IDeploy extends ISignerInformation {
   tag?: string;
 }
 
-export interface IUpgrade extends ISignerInformation {
-  contractName: ContractName;
-  proxy: string;
-  proxyAdmin?: string;
-  contractArgs: any;
-  initialize?: boolean;
-  tag?: string;
-  noCompile: boolean;
+export interface IUpgrade extends Omit<IDeploy, "upgradeable"> {
+  proxy?: string;
 }
 
 export interface ICallContract extends ISignerInformation {

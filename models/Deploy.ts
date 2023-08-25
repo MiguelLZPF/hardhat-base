@@ -46,7 +46,3 @@ export interface IUpgrDeployReturn extends Omit<IDeployReturn, "deployment"> {
   tupInstance: TransparentUpgradeableProxy | Contract;
   proxyAdminInstance?: ProxyAdmin;
 }
-
-export interface IUpgradeReturn extends Omit<IDeployReturn, "deployment"> {
-  deployment: IUpgradeDeployment;
-}
