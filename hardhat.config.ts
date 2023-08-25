@@ -3,7 +3,7 @@ import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
-import { BigNumber, Wallet } from "ethers";
+import { BigNumber, Wallet, Contract } from "ethers";
 import { Mnemonic } from "ethers/lib/utils";
 import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
 import { decryptWallet, generateWallet, generateWallets } from "scripts/wallets";
@@ -21,6 +21,7 @@ import {
   IUpgrade,
 } from "models/Tasks";
 import JSON5 from "json5";
+import { IDeployReturn, IUpgrDeployReturn, IUpgradeDeployment } from "models/Deploy";
 
 //* TASKS
 subtask("create-signer", "Creates new signer from given params")
@@ -256,22 +257,27 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
 // DEPLOYMENTS
 task("deploy", "Deploy smart contracts on '--network'")
   .addFlag("upgradeable", "Deploy as upgradeable")
-  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
+  .addPositionalParam(
+    "contractName",
+    "Name of the contract to deploy (main use: get factory)",
+    undefined,
+    types.string
+  )
   .addOptionalParam(
     "proxyAdmin",
-    "Address of a deloyed Proxy Admin. Only if --upgradeable deployment",
+    "(Optional) [First found in deployments file] Address of a deloyed Proxy Admin. Only if --upgradeable deployment",
     undefined,
     types.string
   )
   .addOptionalParam(
     "contractArgs",
-    "Contract initialize function's arguments if any",
+    "(Optional) [undefined] Contract initialize function's arguments if any",
     undefined,
     types.string
   )
   .addOptionalParam(
     "tag",
-    "Optional string to include metadata or anything related with a deployment",
+    "(Optional) [undefined] string to include metadata or anything related with a deployment",
     undefined,
     types.string
   )
@@ -323,16 +329,17 @@ task("deploy", "Deploy smart contracts on '--network'")
     if (!args.noCompile) {
       await hre.run("compile");
     }
-    const wallet = await hre.run("create-signer", {
+    const wallet = (await hre.run("create-signer", {
       relativePath: args.relativePath,
       password: args.password,
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
       mnemonicLocale: args.mnemonicLocale,
-    } as ISignerInformation);
+    } as ISignerInformation)) as Wallet;
+    let result: IDeployReturn | IUpgrDeployReturn;
     if (args.upgradeable) {
-      await deployUpgradeable(
+      result = await deployUpgradeable(
         args.contractName,
         wallet,
         args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
@@ -343,7 +350,7 @@ task("deploy", "Deploy smart contracts on '--network'")
         true
       );
     } else {
-      await deploy(
+      result = await deploy(
         args.contractName,
         wallet,
         args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
@@ -355,23 +362,57 @@ task("deploy", "Deploy smart contracts on '--network'")
         true
       );
     }
+    //* Print Result on screen
+    console.info(
+      "\n✅ 🎉 Contract deployed successfully! Contract Information:",
+      `\n  - Contract Name (id within this project): ${args.contractName}`,
+      `\n  - Logic Address (the only one if regular deployment): ${
+        (result.deployment as IUpgradeDeployment).logic
+      }`,
+      `\n  - Proxy Address (only if upgradeable deployment): ${
+        (result.deployment as IUpgradeDeployment).proxy
+      }`,
+      `\n  - Admin or Deployer: ${wallet.address}`,
+      `\n  - Deploy Timestamp: ${result.deployment.deployTimestamp}`,
+      `\n  - Bytecode Hash: ${result.deployment.byteCodeHash}`,
+      `\n  - Tag: ${args.tag}`
+    );
   });
 
 task("upgrade", "Upgrade smart contracts on '--network'")
-  .addPositionalParam("contractName", "Name of the contract to deploy", undefined, types.string)
-  .addPositionalParam("proxy", "Address of the TUP proxy", undefined, types.string)
-  .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
+  .addPositionalParam(
+    "contractName",
+    "Name of the contract to upgrade (main use: get factory)",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "proxy",
+    "(Optional) [undefined] Address of the TUP proxy",
+    undefined,
+    types.string
+  )
+  .addOptionalParam(
+    "proxyAdmin",
+    "(Optional) [CONTRACTS] Address of a deloyed Proxy Admin",
+    undefined,
+    types.string
+  )
   .addOptionalParam(
     "contractArgs",
-    "Contract initialize function's arguments if any",
+    "(Optional) [undefined] Contract initialize function's arguments if any",
     undefined,
     types.string
   )
   .addOptionalParam(
     "tag",
-    "Optional string to include metadata or anything related with a deployment",
+    "(Optional) [undefined] string to include metadata or anything related with a deployment",
     undefined,
     types.string
+  )
+  .addFlag(
+    "initialize",
+    "If upgradeable deployment, choose weather to call the initialize function or not to"
   )
   .addFlag("noCompile", "Do not compile contracts before upgrade")
   // Signer params
@@ -424,14 +465,30 @@ task("upgrade", "Upgrade smart contracts on '--network'")
       mnemonicPath: args.mnemonicPath,
       mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
-    await upgrade(
+    const result = await upgrade(
       args.contractName,
       wallet,
       args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
       args.proxy,
+      GAS_OPT.max,
       args.proxyAdmin,
       args.initialize || false,
       true
+    );
+    //* Print Result on screen
+    console.info(
+      "✅ 🎉 Upgradeable Contract upgraded succesfully! Updated information:",
+      `\n  - Contract Name (id within this project): ${args.contractName}`,
+      `\n  - Logic Address (the only one if regular deployment): ${
+        (result.deployment as IUpgradeDeployment).logic
+      }`,
+      `\n  - Proxy Address (only if upgradeable deployment): ${
+        (result.deployment as IUpgradeDeployment).proxy
+      }`,
+      `\n  - Admin or Deployer: ${wallet.address}`,
+      `\n  - Deploy Timestamp: ${result.deployment.deployTimestamp}`,
+      `\n  - Bytecode Hash: ${result.deployment.byteCodeHash}`,
+      `\n  - Tag: ${args.tag}`
     );
   });
 
@@ -506,7 +563,11 @@ task("call-contract", "Call a contract function (this does not change contract s
       `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`
     );
     const functionArgs = args.functionArgs ? JSON5.parse(args.functionArgs) : [];
-    const contract = await getContractInstance(args.contractName, wallet, args.contractAddress);
+    const contract = await getContractInstance<Contract>(
+      args.contractName,
+      wallet,
+      args.contractAddress
+    );
     console.log("Result: ", await contract.callStatic[args.functionName](...functionArgs));
   });
 
