@@ -52,7 +52,7 @@ export function getArtifact(contractName?: ContractName, path?: string): Artifac
  * @param contractAddr (optional) [Contracts.<contractName>.<network>.address] address of the deployed contract
  * @returns instance of the contract attached to contractAddr and connected to signer or provider
  */
-export const getContractInstance = async <T>(
+export const getContractInstance = async <T = Contract>(
   contractName: ContractName,
   signerOrProvider: Signer | Provider | JsonRpcProvider = gProvider,
   contractOrAddress?: string | Contract
