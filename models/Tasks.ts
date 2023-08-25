@@ -1,3 +1,4 @@
+import { TransactionRequest } from "@ethersproject/providers";
 import { ContractName } from "models/Configuration";
 
 //* Tasks Interfaces
@@ -54,6 +55,10 @@ export interface ICallContract extends ISignerInformation {
   functionName: string;
   functionArgs: any;
   artifactPath: string;
+}
+
+export interface ISignTransaction extends ISignerInformation {
+  unsignedTx: TransactionRequest;
 }
 
 export interface IGetLogic {
