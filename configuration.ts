@@ -136,7 +136,7 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     CONTRACT_NAMES[2],
     {
       name: CONTRACT_NAMES[2],
-      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
       address: new Map([
         ["hardhat", undefined],
         ["ganache", undefined],
@@ -148,7 +148,7 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     CONTRACT_NAMES[3],
     {
       name: CONTRACT_NAMES[3],
-      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
       address: new Map([
         ["hardhat", undefined],
         ["ganache", undefined],

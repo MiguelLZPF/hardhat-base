@@ -177,7 +177,7 @@ export async function deployUpgradeable<T extends BaseContract = BaseContract>(
   }
   //* TUP - Transparent Upgradeable Proxy
   const tupDeployResult = await deploy<TransparentUpgradeableProxy>(
-    "TUP",
+    "TransparentUpgradeableProxy",
     deployer,
     [logicAddr, proxyAdminAddr, initData],
     undefined,
@@ -359,7 +359,11 @@ export async function upgrade<T extends BaseContract = BaseContract>(
   return {
     deployment: contractDeployment,
     proxyAdminInstance: proxyAdmin,
-    tupInstance: await getContractInstance("TUP", deployer, contractDeployment.proxy),
+    tupInstance: await getContractInstance(
+      "TransparentUpgradeableProxy",
+      deployer,
+      contractDeployment.proxy
+    ),
     logicInstance: newLogic as T,
     contractInstance: await getContractInstance(contractName, deployer, contractDeployment.proxy),
   };
