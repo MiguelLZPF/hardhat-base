@@ -9,6 +9,7 @@ import {
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
   Contract,
+  BaseContract,
   Signer,
   Provider,
   ContractFactory,
@@ -25,30 +26,28 @@ import {
   IUpgrDeployReturn,
 } from "models/Deploy";
 import yesno from "yesno";
-import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 import { readFileSync, writeFileSync, existsSync, statSync } from "fs";
 import { ContractName, PromiseOrValue } from "models/Configuration";
+import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 
-const PROXY_ADMIN_ARTIFACT = JSON.parse(
-  readFileSync(CONTRACTS.get("ProxyAdmin")!.artifact, "utf-8")
-);
+const PROXY_ADMIN_ARTIFACT = getArtifact("ProxyAdmin");
 const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
 
 /**
  * Performs a regular deployment and updates the deployment information in deployments JSON file
  * @param contractName name of the contract to be deployed
  * @param deployer signer used to sign deploy transacciation
- * @param args arguments to use in the constructor
+ * @param _args arguments to use in the constructor
  * @param txValue contract creation transaccion value
  */
-export const deploy = async (
+export async function deploy<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
   tag?: string,
   overrides?: Overrides,
   save: boolean = false
-): Promise<IDeployReturn> => {
+): Promise<IDeployReturn<T>> {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   // get the artifact of the contract name
@@ -75,9 +74,9 @@ export const deploy = async (
   save ? await saveDeployment(deployment) : undefined;
   return {
     deployment: deployment,
-    contractInstance: contract as Contract,
+    contractInstance: contract as T,
   };
-};
+}
 
 /**
  * Performs an upgradeable deployment and updates the deployment information in deployments JSON file
@@ -87,7 +86,7 @@ export const deploy = async (
  * @param txValue contract creation transaccion value
  * @param proxyAdmin (optional ? PROXY_ADMIN_ADDRESS) custom proxy admin address
  */
-export const deployUpgradeable = async (
+export async function deployUpgradeable<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
   args: unknown[] = [],
@@ -98,7 +97,7 @@ export const deployUpgradeable = async (
   ),
   initialize: boolean = false,
   save: boolean = false
-): Promise<IUpgrDeployReturn> => {
+): Promise<IUpgrDeployReturn<T>> {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   //* Proxy Admin
@@ -164,8 +163,9 @@ export const deployUpgradeable = async (
     false
   );
   const logic = deployResult.contractInstance;
+  const logicAddr = await logic.getAddress();
   const timestamp = getContractTimestamp(logic);
-  if (!logic || !logic.address) {
+  if (!logic || !logicAddr) {
     throw new Error("Logic|Implementation not deployed properly");
   }
   // -- encode function params for TUP
@@ -176,15 +176,15 @@ export const deployUpgradeable = async (
     initData = logic.interface._encodeParams([], []);
   }
   //* TUP - Transparent Upgradeable Proxy
-  const tupDeployResult = await deploy(
+  const tupDeployResult = await deploy<TransparentUpgradeableProxy>(
     "TUP",
     deployer,
-    [logic.address, proxyAdminAddr, initData],
+    [logicAddr, proxyAdminAddr, initData],
     undefined,
     overrides,
     false
   );
-  const tuProxy = tupDeployResult.contractInstance as unknown as TransparentUpgradeableProxy;
+  const tuProxy = tupDeployResult.contractInstance;
   if (!tuProxy) {
     throw new Error("Proxy|Storage not deployed properly");
   }
@@ -214,10 +214,10 @@ export const deployUpgradeable = async (
     adminDeployment: adminDeployment,
     proxyAdminInstance: proxyAdmin,
     tupInstance: tuProxy,
-    logicInstance: logic,
-    contractInstance: await getContractInstance<Contract>(contractName, deployer, tuProxyAddr),
+    logicInstance: logic as T,
+    contractInstance: await getContractInstance<T>(contractName, deployer, tuProxyAddr),
   };
-};
+}
 
 /**
  * Upgrades the logic Contract of an upgradeable deployment and updates the deployment information in deployments JSON file
@@ -227,7 +227,7 @@ export const deployUpgradeable = async (
  * @param proxy (optional) [undefined] address to identifie multiple contracts with the same name and network
  * @param proxyAdmin (optional) [ROXY_ADMIN_ADDRESS] custom proxy admin address
  */
-export const upgrade = async (
+export async function upgrade<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
   args: unknown[],
@@ -238,7 +238,7 @@ export const upgrade = async (
   ),
   initialize: boolean = false,
   save: boolean = false
-): Promise<IUpgrDeployReturn> => {
+): Promise<IUpgrDeployReturn<T>> {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   const adminAddr = deployer.getAddress();
@@ -293,10 +293,10 @@ export const upgrade = async (
   const newLogic = deployResult.contractInstance;
   const newLogicAddr = await newLogic.getAddress();
   const timestamp = getContractTimestamp(newLogic);
-  if (!newLogic || !newLogic.address) {
+  if (!newLogic || !newLogicAddr) {
     throw new Error("Logic|Implementation not deployed properly");
   }
-  console.log(`New logic contract deployed at: ${newLogic.address}`);
+  console.log(`New logic contract deployed at: ${newLogicAddr}`);
 
   // -- encode function params for TUP
   let initData: string;
@@ -316,7 +316,7 @@ export const upgrade = async (
     throw new Error("ERROR: contract retrieved is not upgradeable");
   } else if (args.length > 0) {
     console.info(
-      `Performing upgrade and call from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogic.address}`
+      `Performing upgrade and call from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogicAddr}`
     );
     receipt = await (
       await proxyAdmin.upgradeAndCall(
@@ -328,7 +328,7 @@ export const upgrade = async (
     ).wait();
   } else {
     console.info(
-      `Performing upgrade from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogic.address}`
+      `Performing upgrade from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogicAddr}`
     );
     receipt = await (
       await proxyAdmin.upgrade(contractDeployment.proxy, newLogicAddr, overrides || GAS_OPT.max)
@@ -360,10 +360,10 @@ export const upgrade = async (
     deployment: contractDeployment,
     proxyAdminInstance: proxyAdmin,
     tupInstance: await getContractInstance("TUP", deployer, contractDeployment.proxy),
-    logicInstance: newLogic,
+    logicInstance: newLogic as T,
     contractInstance: await getContractInstance(contractName, deployer, contractDeployment.proxy),
   };
-};
+}
 
 export const getLogic = async (
   proxy: string,
@@ -627,7 +627,7 @@ const getActualNetDeployment = async (hre?: HardhatRuntimeEnvironment) => {
  * @param hre (optional | ghre) use custom HRE
  * @returns ISO string date time representation of the contract timestamp
  */
-const getContractTimestamp = async (contract: Contract, deployTxHash?: string) => {
+const getContractTimestamp = async (contract: BaseContract | Contract, deployTxHash?: string) => {
   let provider = contract.runner?.provider ? contract.runner.provider : gProvider;
   let receipt: TransactionReceipt | null;
   if (contract.deploymentTransaction() && contract.deploymentTransaction()!.hash) {
