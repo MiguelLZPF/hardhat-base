@@ -1,5 +1,6 @@
 import { KEYSTORE } from "configuration";
 import { Wallet, Provider, HDNodeWallet, ProgressCallback, SigningKey } from "ethers";
+import { writeFileSync } from "fs";
 import { checkDirectoriesInPath, gProvider } from "scripts/utils";
 
 export default class CustomWallet extends Wallet {
@@ -31,7 +32,7 @@ export default class CustomWallet extends Wallet {
     progress?: ProgressCallback,
     isAbsolutePath = false,
     provider = gProvider
-  ): Promise<Wallet | HDNodeWallet> {
+  ): Promise<CustomWallet | HDNodeWallet> {
     if (!isAbsolutePath) {
       // remove "/"
       json = json[0] == "/" ? json.substring(1) : json;
@@ -41,14 +42,16 @@ export default class CustomWallet extends Wallet {
       json = `${KEYSTORE.root}/${json}`;
     }
     checkDirectoriesInPath(json);
-    return (await super.fromEncryptedJson(json, password, progress)).connect(provider);
+    return (await super.fromEncryptedJson(json, password, progress)).connect(provider) as
+      | CustomWallet
+      | HDNodeWallet;
   }
   static override fromEncryptedJsonSync(
     json: string,
     password: string | Uint8Array = KEYSTORE.default.password,
     isAbsolutePath = false,
     provider: Provider = gProvider
-  ): Wallet | HDNodeWallet {
+  ): CustomWallet | HDNodeWallet {
     if (!isAbsolutePath) {
       // remove "/"
       json = json[0] == "/" ? json.substring(1) : json;
@@ -58,7 +61,9 @@ export default class CustomWallet extends Wallet {
       json = `${KEYSTORE.root}/${json}`;
     }
     checkDirectoriesInPath(json);
-    return super.fromEncryptedJsonSync(json, password).connect(provider);
+    return super.fromEncryptedJsonSync(json, password).connect(provider) as
+      | CustomWallet
+      | HDNodeWallet;
   }
 
   override async encrypt(
@@ -69,5 +74,22 @@ export default class CustomWallet extends Wallet {
   }
   override encryptSync(password: string | Uint8Array = KEYSTORE.default.password): string {
     return super.encryptSync(password);
+  }
+  
+  storeEncrypted(
+    path: string,
+    password: string | Uint8Array = KEYSTORE.default.password,
+    isAbsolutePath = false
+  ) {
+    if (!isAbsolutePath) {
+      // remove "/"
+      path = path[0] == "/" ? path.substring(1) : path;
+      // add .json extension
+      path = path.endsWith(".json") ? path : `${path}.json`;
+      // full path relative to project root. example: keystore/relativePath"
+      path = `${KEYSTORE.root}/${path}`;
+    }
+    writeFileSync(path, this.encryptSync(password));
+    return path;
   }
 }

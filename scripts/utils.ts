@@ -20,7 +20,7 @@ export let gNetwork: INetwork;
 export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   ghre = hre;
   gEthers = hre.ethers;
-  gProvider = hre.ethers.getDefaultProvider(hre.network);
+  gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
   gNetwork = BLOCKCHAIN.networks.get(chainIdToNetwork.get((await gProvider.getNetwork()).chainId))!;
   return { gProvider, gNetwork };

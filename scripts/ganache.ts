@@ -4,7 +4,7 @@ import {} from "ethers";
 
 const ganacheServer = ganache.server({
   chain: {
-    chainId: BLOCKCHAIN.networks.get("ganache")?.chainId,
+    chainId: Number(BLOCKCHAIN.networks.get("ganache")?.chainId),
     hardfork: BLOCKCHAIN.default.evm,
     vmErrorsOnRPCResponse: true,
   },

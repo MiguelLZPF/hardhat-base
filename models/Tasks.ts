@@ -1,35 +1,33 @@
-import { TransactionRequest } from "@ethersproject/providers";
+import { TransactionRequest } from "ethers";
 import { ContractName } from "models/Configuration";
 
 //* Tasks Interfaces
 export interface ISignerInformation {
   relativePath?: string;
-  password: string;
+  password?: string;
   privateKey?: string;
   mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
+  mnemonicPath?: string;
 }
 
-export interface IGenerateWallets extends ISignerInformation {
+export interface IGenerateWallets extends Omit<ISignerInformation, "relativePath"> {
+  type?: string;  
   batchSize?: number;
-  entropy?: string;
-  type: string;
-  connect: boolean;
+  relativePath?: string;
 }
 
 export interface IGetWalletInfo {
   relativePath?: string;
-  password: string;
+  password?: string;
+  privateKey?: string;
   mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
-  showPrivate: boolean;
+  mnemonicPath?: string;
+  showPrivate?: boolean;
 }
 
 export interface IGetMnemonic {
   relativePath: string;
-  password: string;
+  password?: string;
 }
 
 //* Deployments

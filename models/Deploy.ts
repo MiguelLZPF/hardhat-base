@@ -1,5 +1,5 @@
 import { ContractName, NetworkName } from "models/Configuration";
-import { Contract, BaseContract, BytesLike } from "ethers";
+import { BytesLike } from "ethers";
 import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
 
 interface IDeployment {

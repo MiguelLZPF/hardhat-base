@@ -3,7 +3,7 @@ import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
-import { Wallet, Contract, ContractTransaction, HDNodeWallet, Mnemonic } from "ethers";
+import { Wallet, Contract, ContractTransactionResponse, HDNodeWallet, SigningKey } from "ethers";
 import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
 import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "scripts/deploy";
 import { getContractInstance, setGlobalHRE } from "scripts/utils";
@@ -32,12 +32,7 @@ subtask("create-signer", "Creates new signer from given params")
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -53,12 +48,12 @@ subtask("create-signer", "Creates new signer from given params")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
+    undefined,
     types.string
   )
   .setAction(async (args: ISignerInformation, hre) => {
     const { gProvider } = await setGlobalHRE(hre);
-    let wallet: Wallet | HDNodeWallet | undefined;
+    let wallet: CustomWallet | HDNodeWallet | undefined;
     if (args.privateKey) {
       wallet = new CustomWallet(args.privateKey, gProvider);
     } else if (args.mnemonicPhrase) {
@@ -75,7 +70,7 @@ subtask("create-signer", "Creates new signer from given params")
 
 task("generate-wallets", "Generates Encryped JSON persistent wallets")
   .addPositionalParam("type", "Type of generation [single, batch]", "single", types.string)
-  .addOptionalParam(
+  .addParam(
     "relativePath",
     "Path relative to KEYSTORE.root to store the wallets",
     undefined,
@@ -102,48 +97,34 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
     types.string
   )
   .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
-    types.string
-  )
-  .addOptionalParam(
     "batchSize",
     "Number of user wallets to be generated in batch",
     undefined,
     types.int
   )
-  .addFlag("connect", "If true, the wallet(s) will be automatically connected to the provider")
   .setAction(async (args: IGenerateWallets, hre) => {
     await setGlobalHRE(hre);
-    // if default keyword, use the default phrase
-    args.mnemonicPhrase =
-      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
-    if (args.type.toLowerCase() == "batch") {
-      await generateWallets(
-        args.relativePath,
-        args.password,
-        args.batchSize,
-        args.entropy ? Buffer.from(args.entropy) : undefined,
-        {
-          phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath || KEYSTORE.default.mnemonic.basePath,
-          locale: args.mnemonicLocale,
-        } as Mnemonic,
-        args.connect
-      );
+    let wallet: CustomWallet | HDNodeWallet;
+    if (args.type && args.type.toLowerCase() === "batch") {
+      wallet = (await hre.run("create-signer", {
+        mnemonicPhrase: args.mnemonicPhrase,
+        mnemonicPath: args.mnemonicPath || KEYSTORE.default.mnemonic.basePath,
+      } as ISignerInformation)) as HDNodeWallet;
+      for (let index = 0; index < (args.batchSize || KEYSTORE.default.batchSize); index++) {
+        new CustomWallet(wallet.deriveChild(index).privateKey).storeEncrypted(
+          `${args.relativePath || "default"}_${index < 10 ? `0${index}` : index}`,
+          args.password
+        );
+      }
     } else {
-      await getWalletInstance(
-        args.relativePath,
-        args.password,
-        args.entropy ? Buffer.from(args.entropy) : undefined,
-        args.privateKey,
-        {
-          phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath || KEYSTORE.default.mnemonic.path,
-          locale: args.mnemonicLocale,
-        } as Mnemonic,
-        args.connect
+      wallet = await hre.run("create-signer", {
+        privateKey: args.privateKey,
+        mnemonicPhrase: args.mnemonicPhrase,
+        mnemonicPath: args.mnemonicPath,
+      } as ISignerInformation);
+      new CustomWallet(wallet.privateKey).storeEncrypted(
+        args.relativePath || "default",
+        args.password
       );
     }
   });
@@ -155,12 +136,7 @@ task("get-wallet-info", "Recover all information from an encrypted wallet or an 
     undefined,
     types.string
   )
-  .addOptionalPositionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalPositionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "mnemonicPhrase",
     "Mnemonic phrase to generate wallet from",
@@ -170,49 +146,38 @@ task("get-wallet-info", "Recover all information from an encrypted wallet or an 
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .addFlag("showPrivate", "set to true if you want to show the private key and mnemonic phrase")
   .setAction(async (args: IGetWalletInfo, hre) => {
-    // console.log(path, password, showPrivate);
-    args.mnemonicPhrase =
-      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
-    let wallet: Wallet | undefined;
-    if (args.mnemonicPhrase) {
-      wallet = await getWalletInstance(undefined, undefined, undefined, undefined, {
-        phrase: args.mnemonicPhrase,
-        path: args.mnemonicPath,
-        locale: args.mnemonicLocale,
-      } as Mnemonic);
-    } else if (args.relativePath) {
-      wallet = await decryptWallet(args.relativePath, args.password);
-    } else {
-      throw new Error("Cannot get a wallet from parameters, needed path or Mnemonic");
-    }
+    const wallet: CustomWallet | HDNodeWallet = await hre.run("create-signer", {
+      relativePath: args.relativePath,
+      password: args.password,
+      privateKey: args.privateKey,
+      mnemonicPhrase: args.mnemonicPhrase,
+      mnemonicPath: args.mnemonicPath,
+    } as ISignerInformation);
     let privateKey = wallet.privateKey;
-    let mnemonic = wallet.mnemonic;
+    let mnemonicPhrase: string | undefined = undefined;
+    let mnemonicPath: string | null = null;
+    if (wallet instanceof HDNodeWallet) {
+      mnemonicPhrase = wallet.mnemonic?.phrase;
+      mnemonicPath = wallet.path;
+    }
     // needed because is read-only
-    args.mnemonicPhrase = mnemonic.phrase;
     if (!args.showPrivate) {
       privateKey = "***********";
-      args.mnemonicPhrase = "***********";
+      mnemonicPhrase = "***********";
     }
     console.log(`
     Wallet information:
       - Address: ${wallet.address}
-      - Public Key: ${wallet.publicKey}
+      - Public Key: ${new SigningKey(wallet.privateKey).publicKey}
       - Private Key: ${privateKey}
       - Mnemonic:
-        - Phrase: ${args.mnemonicPhrase}
-        - Path: ${mnemonic.path}
-        - Locale: ${mnemonic.locale}
+        - Phrase: ${mnemonicPhrase}
+        - Path: ${mnemonicPath}
       - ETH Balance (Wei): ${await hre.ethers.provider.getBalance(wallet.address)}
     `);
   });
@@ -224,19 +189,16 @@ task("get-mnemonic", "Recover mnemonic phrase from an encrypted wallet")
     undefined,
     types.string
   )
-  .addOptionalPositionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
-  .setAction(async (args: IGetMnemonic) => {
-    const wallet = await decryptWallet(args.relativePath, args.password);
+  .addOptionalPositionalParam("password", "Password to decrypt the wallet", undefined, types.string)
+  .setAction(async (args: IGetMnemonic, hre) => {
+    const wallet: HDNodeWallet = await hre.run("create-signer", {
+      relativePath: args.relativePath,
+      password: args.password,
+    } as ISignerInformation);
     console.log(`
       - Mnemonic:
-        - Phrase: ${wallet.mnemonic.phrase}
-        - Path: ${wallet.mnemonic.path}
-        - Locale: ${wallet.mnemonic.locale}
+        - Phrase: ${wallet.mnemonic?.phrase}
+        - Path: ${wallet.path}
     `);
   });
 
@@ -280,12 +242,7 @@ task("deploy", "Deploy smart contracts on '--network'")
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -301,13 +258,7 @@ task("deploy", "Deploy smart contracts on '--network'")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: IDeploy, hre) => {
@@ -321,9 +272,8 @@ task("deploy", "Deploy smart contracts on '--network'")
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation)) as Wallet;
-    let result: IDeployReturn | IUpgrDeployReturn;
+    let result: IDeployReturn<Contract> | IUpgrDeployReturn<Contract>;
     if (args.upgradeable) {
       result = await deployUpgradeable(
         args.contractName,
@@ -408,12 +358,7 @@ task("upgrade", "Upgrade smart contracts on '--network'")
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -429,13 +374,7 @@ task("upgrade", "Upgrade smart contracts on '--network'")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: IUpgrade, hre) => {
@@ -449,7 +388,6 @@ task("upgrade", "Upgrade smart contracts on '--network'")
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
     const result = await upgrade(
       args.contractName,
@@ -505,12 +443,7 @@ task("call-contract", "Call a contract function (this does not change contract s
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -526,13 +459,7 @@ task("call-contract", "Call a contract function (this does not change contract s
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: ICallContract, hre) => {
@@ -543,7 +470,6 @@ task("call-contract", "Call a contract function (this does not change contract s
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
     console.log(
       `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`
@@ -554,7 +480,7 @@ task("call-contract", "Call a contract function (this does not change contract s
       wallet,
       args.contractAddress
     );
-    console.log("Result: ", await contract.callStatic[args.functionName](...functionArgs));
+    console.log("Result: ", await contract[args.functionName].staticCallResult(...functionArgs));
   });
 
 task(
@@ -587,12 +513,7 @@ task(
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -608,13 +529,7 @@ task(
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: ICallContract, hre) => {
@@ -625,7 +540,6 @@ task(
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
     console.log(
       `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`
@@ -633,10 +547,16 @@ task(
     const functionArgs = args.functionArgs ? JSON5.parse(args.functionArgs) : [];
     const contract = await getContractInstance(args.contractName, wallet, args.contractAddress);
     const receipt = await (
-      (await contract[args.functionName](...functionArgs, GAS_OPT.max)) as ContractTransaction
+      (await contract[args.functionName](
+        ...functionArgs,
+        GAS_OPT.max
+      )) as ContractTransactionResponse
     ).wait();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Cannot execute transaction. No receipt found`);
+    }
     console.log("\nTransaction executed succesfully: ", {
-      TransactionHash: receipt.transactionHash,
+      TransactionHash: receipt.hash,
       BlockHash: receipt.blockHash,
       BlockNumber: receipt.blockNumber,
     });
@@ -651,12 +571,7 @@ task("sign-tx", "Signs the unsigned transaction")
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -672,13 +587,7 @@ task("sign-tx", "Signs the unsigned transaction")
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: ISignTransaction, hre) => {
@@ -689,7 +598,6 @@ task("sign-tx", "Signs the unsigned transaction")
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
 
     const signedTx = await wallet.signTransaction(args.unsignedTx);
@@ -698,7 +606,7 @@ task("sign-tx", "Signs the unsigned transaction")
       UnsignedTransaction: args.unsignedTx,
       SignedTransaction: signedTx,
       Signer: wallet.address,
-      SignerNonce: await wallet.getTransactionCount(),
+      SignerNonce: await wallet.getNonce(),
     });
   });
 
@@ -709,12 +617,11 @@ task(
   .addPositionalParam("proxy", "address of the proxy|storage contract", undefined, types.string)
   .addOptionalParam("proxyAdmin", "Address of a deloyed Proxy Admin", undefined, types.string)
   .setAction(async (args: IGetLogic, hre: HardhatRuntimeEnvironment) => {
-    setGlobalHRE(hre);
+    await setGlobalHRE(hre);
 
     const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } = await getLogic(
       args.proxy,
-      args.proxyAdmin,
-      hre
+      args.proxyAdmin
     );
 
     console.log(`
@@ -737,12 +644,7 @@ task("change-logic", "change the actual logic|implementation smart contract of a
     undefined,
     types.string
   )
-  .addOptionalParam(
-    "password",
-    "Password to decrypt the wallet",
-    KEYSTORE.default.password,
-    types.string
-  )
+  .addOptionalParam("password", "Password to decrypt the wallet", undefined, types.string)
   .addOptionalParam(
     "privateKey",
     "A private key in hexadecimal can be used to sign",
@@ -758,13 +660,7 @@ task("change-logic", "change the actual logic|implementation smart contract of a
   .addOptionalParam(
     "mnemonicPath",
     "Mnemonic path to generate wallet from",
-    KEYSTORE.default.mnemonic.path,
-    types.string
-  )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
+    undefined,
     types.string
   )
   .setAction(async (args: IChangeLogic, hre: HardhatRuntimeEnvironment) => {
@@ -775,7 +671,6 @@ task("change-logic", "change the actual logic|implementation smart contract of a
       privateKey: args.privateKey,
       mnemonicPhrase: args.mnemonicPhrase,
       mnemonicPath: args.mnemonicPath,
-      mnemonicLocale: args.mnemonicLocale,
     } as ISignerInformation);
     const { previousLogic, actualLogic, receipt } = await changeLogic(
       args.proxy,
@@ -783,11 +678,14 @@ task("change-logic", "change the actual logic|implementation smart contract of a
       wallet!,
       args.proxyAdmin
     );
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Cannot execute transaction. No receipt found`);
+    }
     console.log(`
           Logic changed successfully:
             - Previous Logic: ${previousLogic}
             - Actual Logic: ${actualLogic}
-            - Transaction: ${receipt.transactionHash}
+            - Transaction: ${receipt.hash}
             - Block: ${receipt.blockHash}
         `);
   });
@@ -816,12 +714,14 @@ task("quick-test", "Random quick testing function")
     console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
     console.log(
       "First accounts: ",
-      await hre.ethers.provider.getSigner(0).getAddress(),
-      await hre.ethers.provider.getSigner(1).getAddress()
+      await (await hre.ethers.provider.getSigner(0)).getAddress(),
+      await (await hre.ethers.provider.getSigner(1)).getAddress()
     );
     console.log(
       "First account balance: ",
-      await hre.ethers.provider.getBalance(await hre.ethers.provider.getSigner(0).getAddress())
+      await hre.ethers.provider.getBalance(
+        await (await hre.ethers.provider.getSigner(0)).getAddress()
+      )
     );
   });
 
