@@ -4,9 +4,10 @@
 
 import { ethers } from "ethers";
 import {
+  DeployContractOptions,
   FactoryOptions,
   HardhatEthersHelpers as HardhatEthersHelpersBase,
-} from "@nomiclabs/hardhat-ethers/types";
+} from "@nomicfoundation/hardhat-ethers/types";
 
 import * as Contracts from ".";
 
@@ -51,48 +52,131 @@ declare module "hardhat/types/runtime" {
 
     getContractAt(
       name: "OwnableUpgradeable",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.OwnableUpgradeable>;
     getContractAt(
       name: "Initializable",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.Initializable>;
     getContractAt(
       name: "ContextUpgradeable",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ContextUpgradeable>;
     getContractAt(
       name: "Ownable",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.Ownable>;
     getContractAt(
       name: "IStorage",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.IStorage>;
     getContractAt(
       name: "Storage",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.Storage>;
     getContractAt(
       name: "StorageUpgr",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.StorageUpgr>;
     getContractAt(
       name: "ProxyAdmin",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ProxyAdmin>;
     getContractAt(
       name: "TransparentUpgradeableProxy",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
+    ): Promise<Contracts.TransparentUpgradeableProxy>;
+
+    deployContract(
+      name: "OwnableUpgradeable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.OwnableUpgradeable>;
+    deployContract(
+      name: "Initializable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
+    deployContract(
+      name: "ContextUpgradeable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ContextUpgradeable>;
+    deployContract(
+      name: "Ownable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Ownable>;
+    deployContract(
+      name: "IStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IStorage>;
+    deployContract(
+      name: "Storage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Storage>;
+    deployContract(
+      name: "StorageUpgr",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StorageUpgr>;
+    deployContract(
+      name: "ProxyAdmin",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ProxyAdmin>;
+    deployContract(
+      name: "TransparentUpgradeableProxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TransparentUpgradeableProxy>;
+
+    deployContract(
+      name: "OwnableUpgradeable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.OwnableUpgradeable>;
+    deployContract(
+      name: "Initializable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Initializable>;
+    deployContract(
+      name: "ContextUpgradeable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ContextUpgradeable>;
+    deployContract(
+      name: "Ownable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Ownable>;
+    deployContract(
+      name: "IStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IStorage>;
+    deployContract(
+      name: "Storage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Storage>;
+    deployContract(
+      name: "StorageUpgr",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StorageUpgr>;
+    deployContract(
+      name: "ProxyAdmin",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ProxyAdmin>;
+    deployContract(
+      name: "TransparentUpgradeableProxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TransparentUpgradeableProxy>;
 
     // default types
@@ -102,13 +186,22 @@ declare module "hardhat/types/runtime" {
     ): Promise<ethers.ContractFactory>;
     getContractFactory(
       abi: any[],
-      bytecode: ethers.utils.BytesLike,
+      bytecode: ethers.BytesLike,
       signer?: ethers.Signer
     ): Promise<ethers.ContractFactory>;
     getContractAt(
       nameOrAbi: string | any[],
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
+    ): Promise<ethers.Contract>;
+    deployContract(
+      name: string,
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<ethers.Contract>;
+    deployContract(
+      name: string,
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<ethers.Contract>;
   }
 }

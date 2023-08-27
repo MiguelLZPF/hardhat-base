@@ -1,6 +1,6 @@
 import { BLOCKCHAIN, KEYSTORE } from "configuration";
 import ganache from "ganache";
-import { BigNumber } from "ethers";
+import {} from "ethers";
 
 const ganacheServer = ganache.server({
   chain: {
@@ -18,7 +18,7 @@ const ganacheServer = ganache.server({
     totalAccounts: KEYSTORE.default.accountNumber,
     lock: false,
     passphrase: KEYSTORE.default.password,
-    defaultBalance: BigNumber.from(KEYSTORE.default.balance).toNumber(),
+    defaultBalance: Number(BigInt(KEYSTORE.default.balance)),
   },
   database: {
     dbPath: BLOCKCHAIN.networks.get("ganache")?.dbPath,

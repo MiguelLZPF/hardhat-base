@@ -1,3 +1,4 @@
+export type PromiseOrValue<T> = Promise<T> | T;
 export type Hardfork = "london" | "berlin" | "byzantium";
 export type NetworkProtocol = "http" | "https" | "ws";
 export type NetworkName = "hardhat" | "ganache" | "mainTest"; // you can add whatever Network name here
@@ -15,7 +16,7 @@ export type ContractName = UnionFromTuple<
 >;
 
 export interface INetwork {
-  chainId: number;
+  chainId: BigInt;
   name: NetworkName;
   protocol: NetworkProtocol;
   hostname: string;

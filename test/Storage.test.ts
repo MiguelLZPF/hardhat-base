@@ -7,7 +7,7 @@ import { TransactionReceipt, Block, JsonRpcProvider } from "@ethersproject/provi
 import { Mnemonic, isAddress, parseEther } from "ethers/lib/utils";
 import { generateWallets } from "scripts/wallets";
 import { IStorage, Ownable } from "typechain-types";
-import { ADDR_ZERO, getContractInstance, setGlobalHRE } from "scripts/utils";
+import { ZeroAddress, getContractInstance, setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
 import { deploy } from "scripts/deploy";
 
@@ -71,7 +71,7 @@ describe("Storage", () => {
         );
         storage = deployResult.contractInstance as IStorage & Ownable;
         expect(isAddress(storage.address)).to.be.true;
-        expect(storage.address).not.to.equal(ADDR_ZERO);
+        expect(storage.address).not.to.equal(ZeroAddress);
         console.log(`NEW ${CONTRACT_NAME} deployed at: ${storage.address}`);
       });
       step("Should check if correct initialization", async () => {

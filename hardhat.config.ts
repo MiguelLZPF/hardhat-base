@@ -3,10 +3,8 @@ import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
-import { BigNumber, Wallet, Contract, ContractTransaction } from "ethers";
-import { Mnemonic } from "ethers/lib/utils";
+import { Wallet, Contract, ContractTransaction, HDNodeWallet, Mnemonic } from "ethers";
 import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
-import { decryptWallet, generateWallet, generateWallets } from "scripts/wallets";
 import { changeLogic, deploy, deployUpgradeable, getLogic, upgrade } from "scripts/deploy";
 import { getContractInstance, setGlobalHRE } from "scripts/utils";
 import {
@@ -23,6 +21,7 @@ import {
 } from "models/Tasks";
 import JSON5 from "json5";
 import { IDeployReturn, IUpgrDeployReturn, IUpgradeDeployment } from "models/Deploy";
+import CustomWallet from "scripts/wallets";
 
 //* TASKS
 subtask("create-signer", "Creates new signer from given params")
@@ -57,33 +56,19 @@ subtask("create-signer", "Creates new signer from given params")
     KEYSTORE.default.mnemonic.path,
     types.string
   )
-  .addOptionalParam(
-    "mnemonicLocale",
-    "Mnemonic locale to generate wallet from",
-    KEYSTORE.default.mnemonic.locale,
-    types.string
-  )
   .setAction(async (args: ISignerInformation, hre) => {
-    args.mnemonicPhrase =
-      args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
-    let wallet: Wallet | undefined;
-    if (args.mnemonicPhrase || args.privateKey) {
-      wallet = await generateWallet(
-        undefined,
-        undefined,
-        undefined,
-        args.privateKey,
-        {
-          phrase: args.mnemonicPhrase,
-          path: args.mnemonicPath,
-          locale: args.mnemonicLocale,
-        } as Mnemonic,
-        true
-      );
+    const { gProvider } = await setGlobalHRE(hre);
+    let wallet: Wallet | HDNodeWallet | undefined;
+    if (args.privateKey) {
+      wallet = new CustomWallet(args.privateKey, gProvider);
+    } else if (args.mnemonicPhrase) {
+      wallet = CustomWallet.fromPhrase(args.mnemonicPhrase, gProvider, args.mnemonicPath);
     } else if (args.relativePath) {
-      wallet = await decryptWallet(args.relativePath, args.password, true);
+      wallet = CustomWallet.fromEncryptedJsonSync(args.relativePath, args.password);
     } else {
-      throw new Error("Cannot get a wallet from parameters, needed path or Mnemonic");
+      throw new Error(
+        "❌  Cannot get a wallet from parameters, needed private key or mnemonic or path"
+      );
     }
     return wallet;
   });
@@ -148,7 +133,7 @@ task("generate-wallets", "Generates Encryped JSON persistent wallets")
         args.connect
       );
     } else {
-      await generateWallet(
+      await getWalletInstance(
         args.relativePath,
         args.password,
         args.entropy ? Buffer.from(args.entropy) : undefined,
@@ -201,7 +186,7 @@ task("get-wallet-info", "Recover all information from an encrypted wallet or an 
       args.mnemonicPhrase == "default" ? KEYSTORE.default.mnemonic.phrase : args.mnemonicPhrase;
     let wallet: Wallet | undefined;
     if (args.mnemonicPhrase) {
-      wallet = await generateWallet(undefined, undefined, undefined, undefined, {
+      wallet = await getWalletInstance(undefined, undefined, undefined, undefined, {
         phrase: args.mnemonicPhrase,
         path: args.mnemonicPath,
         locale: args.mnemonicLocale,
@@ -855,7 +840,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: BLOCKCHAIN.networks.get("hardhat")!.chainId,
+      chainId: Number(BLOCKCHAIN.networks.get("hardhat")!.chainId),
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
@@ -866,9 +851,7 @@ const config: HardhatUserConfig = {
         path: KEYSTORE.default.mnemonic.basePath,
         count: KEYSTORE.default.accountNumber,
         // passphrase: KEYSTORE.default.password,
-        accountsBalance: BigNumber.from(KEYSTORE.default.balance)
-          .mul(BigNumber.from("0x0de0b6b3a7640000"))
-          .toString(),
+        accountsBalance: String(BigInt(KEYSTORE.default.balance) * BigInt("0x0de0b6b3a7640000")),
       },
       loggingEnabled: false,
       mining: {
@@ -878,10 +861,9 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `${BLOCKCHAIN.networks.get("ganache")?.protocol}://${
-        BLOCKCHAIN.networks.get("ganache")?.hostname
-      }:${BLOCKCHAIN.networks.get("ganache")?.port}`,
-      chainId: BLOCKCHAIN.networks.get("ganache")?.chainId,
+      url: `${BLOCKCHAIN.networks.get("ganache")?.protocol}://${BLOCKCHAIN.networks.get("ganache")
+        ?.hostname}:${BLOCKCHAIN.networks.get("ganache")?.port}`,
+      chainId: Number(BLOCKCHAIN.networks.get("ganache")?.chainId),
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
@@ -896,7 +878,7 @@ const config: HardhatUserConfig = {
     currency: "EUR",
   },
   typechain: {
-    target: "ethers-v5",
+    target: "ethers-v6",
     externalArtifacts: [
       // Not working with byzantium EVM (compile)
       "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",

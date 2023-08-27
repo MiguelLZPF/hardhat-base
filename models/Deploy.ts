@@ -26,7 +26,7 @@ export interface IUpgradeDeployment extends IDeployment {
 export interface INetworkDeployment {
   network: {
     name: NetworkName;
-    chainId: number;
+    chainId: BigInt;
   };
   smartContracts: {
     proxyAdmins?: IRegularDeployment[];
