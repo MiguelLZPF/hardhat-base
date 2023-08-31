@@ -779,11 +779,11 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     target: "ethers-v6",
-    externalArtifacts: [
-      // Not working with byzantium EVM (compile)
-      "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
-      "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
-    ],
+    // externalArtifacts: [
+    //   // Not working with byzantium EVM (compile)
+    //   "node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json",
+    //   "node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json",
+    // ],
   },
 };
 
