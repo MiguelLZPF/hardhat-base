@@ -12,8 +12,8 @@ import {
   BaseContract,
   Signer,
   Provider,
-  ContractFactory,
   TransactionReceipt,
+  ContractMethodArgs,
   keccak256,
   Overrides,
   isAddress,
@@ -29,6 +29,7 @@ import yesno from "yesno";
 import { readFileSync, writeFileSync, existsSync, statSync } from "fs";
 import { ContractName, PromiseOrValue } from "models/Configuration";
 import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
+import CustomContract from "models/CustomContract";
 
 const PROXY_ADMIN_ARTIFACT = getArtifact("ProxyAdmin");
 const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
@@ -43,7 +44,7 @@ const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
 export async function deploy<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
-  args: unknown[] = [],
+  args: ContractMethodArgs<any[]>,
   tag?: string,
   overrides?: Overrides,
   save: boolean = false
@@ -52,16 +53,13 @@ export async function deploy<T extends BaseContract = BaseContract>(
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   // get the artifact of the contract name
   const artifact = getArtifact(contractName);
-  // create factory instance and deploy
-  const factory = new ContractFactory(artifact.abi, artifact.bytecode, deployer);
-  // actual deployment
-  const contract = await (
-    await factory.deploy(...args, overrides ? overrides : { ...GAS_OPT.max })
-  ).waitForDeployment();
-  const receipt = await contract.deploymentTransaction()?.wait();
-  if (!receipt) {
-    throw new Error(`❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`);
-  }
+  const { contract, receipt } = await CustomContract.deploy(
+    artifact.abi,
+    artifact.bytecode,
+    deployer,
+    args,
+    overrides
+  );
   //* Store contract deployment information
   const deployment: IRegularDeployment = {
     address: await contract.getAddress(),
@@ -89,7 +87,7 @@ export async function deploy<T extends BaseContract = BaseContract>(
 export async function deployUpgradeable<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
-  args: unknown[] = [],
+  args: ContractMethodArgs<any[]>,
   tag?: string,
   overrides?: Overrides,
   proxyAdmin: string | ProxyAdmin | undefined = CONTRACTS.get("ProxyAdmin")?.address.get(
@@ -230,7 +228,7 @@ export async function deployUpgradeable<T extends BaseContract = BaseContract>(
 export async function upgrade<T extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
-  args: unknown[],
+  args: ContractMethodArgs<any[]>,
   proxy?: string,
   overrides?: Overrides,
   proxyAdmin: string | ProxyAdmin | undefined = CONTRACTS.get("ProxyAdmin")?.address.get(

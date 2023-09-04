@@ -8,10 +8,12 @@ import {
   Contract,
   ContractRunner,
   ContractTransactionResponse,
+  ContractTransactionReceipt,
   ContractMethodArgs,
   TransactionResponse,
   BytesLike,
   isAddress,
+  Overrides,
   EventLog,
   Log,
 } from "ethers";
@@ -29,52 +31,52 @@ export default class CustomContract<C extends BaseContract> {
     this.contract = new Contract(address, abi, runner) as unknown as C;
     this.address = address;
   }
-  //* Staric methods
+  //* Static methods
   static async deploy<F extends ContractFactory = ContractFactory>(
     abi: Interface | InterfaceAbi,
     bytecode: BytesLike | { object: string },
     signer: Signer,
-    args?: ContractMethodArgs<any[]>
-  ): Promise<
-    BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
-        BaseContract,
-        keyof BaseContract
-      >
-  >;
+    args?: ContractMethodArgs<any[]>,
+    overrides?: Overrides
+  ): Promise<IDeployResult>;
   static async deploy<F extends ContractFactory = ContractFactory>(
     factory: F,
     signer?: Signer,
-    args?: ContractMethodArgs<any[]>
-  ): Promise<
-    BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
-        BaseContract,
-        keyof BaseContract
-      >
-  >;
+    args?: ContractMethodArgs<any[]>,
+    overrides?: Overrides
+  ): Promise<IDeployResult>;
   static async deploy<F extends ContractFactory = ContractFactory>(
     factoryOrAbi?: F | Interface | InterfaceAbi,
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
-    args?: ContractMethodArgs<any[]>
-  ): Promise<
-    BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
+    argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
+    overrides?: Overrides
+  ): Promise<IDeployResult> {
+    let contract: BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
         BaseContract,
         keyof BaseContract
-      >
-  > {
+      >;
+    let receipt: ContractTransactionReceipt | null | undefined;
     if (factoryOrAbi instanceof ContractFactory) {
-      return bytecodeOrSigner
-        ? factoryOrAbi.connect(bytecodeOrSigner as Signer).deploy(signerOrArgs)
-        : factoryOrAbi.deploy(signerOrArgs);
+      const args = signerOrArgs as ContractMethodArgs<any[]>;
+      contract = bytecodeOrSigner
+        ? await factoryOrAbi.connect(bytecodeOrSigner as Signer).deploy(...args, overrides)
+        : await factoryOrAbi.deploy(...args, overrides);
     } else {
-      return (
+      const args = argsOrOverrides as ContractMethodArgs<any[]>;
+      contract = await (
         new ContractFactory(
           factoryOrAbi as Interface | InterfaceAbi,
           bytecodeOrSigner as BytesLike | { object: string },
           signerOrArgs as Signer
         ) as F
-      ).deploy(args);
+      ).deploy(...args, overrides);
     }
+    receipt = await contract.deploymentTransaction()?.wait();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`);
+    }
+    return { contract: contract, receipt: receipt };
   }
 
   //* Contract base functions
@@ -124,4 +126,12 @@ export default class CustomContract<C extends BaseContract> {
     }
     return true;
   }
+}
+
+interface IDeployResult {
+  contract: BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
+      BaseContract,
+      keyof BaseContract
+    >;
+  receipt: ContractTransactionReceipt;
 }
