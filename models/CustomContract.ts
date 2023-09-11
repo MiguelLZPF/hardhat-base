@@ -32,26 +32,26 @@ export default class CustomContract<C extends BaseContract> {
     this.address = address;
   }
   //* Static methods
-  static async deploy<F extends ContractFactory = ContractFactory>(
+  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
     abi: Interface | InterfaceAbi,
     bytecode: BytesLike | { object: string },
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides
-  ): Promise<IDeployResult>;
-  static async deploy<F extends ContractFactory = ContractFactory>(
+  ): Promise<ICCDeployResult<C>>;
+  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
     factory: F,
     signer?: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides
-  ): Promise<IDeployResult>;
-  static async deploy<F extends ContractFactory = ContractFactory>(
-    factoryOrAbi?: F | Interface | InterfaceAbi,
+  ): Promise<ICCDeployResult<C>>;
+  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
+    factoryOrAbi: F | Interface | InterfaceAbi,
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
     overrides?: Overrides
-  ): Promise<IDeployResult> {
+  ): Promise<ICCDeployResult<C>> {
     let contract: BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
         BaseContract,
         keyof BaseContract
@@ -76,7 +76,14 @@ export default class CustomContract<C extends BaseContract> {
     if (!receipt) {
       throw new Error(`❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`);
     }
-    return { contract: contract, receipt: receipt };
+    return {
+      contract: new CustomContract<C>(
+        await contract.getAddress(),
+        contract.interface,
+        contract.runner as Signer
+      ),
+      receipt: receipt,
+    };
   }
 
   //* Contract base functions
@@ -97,10 +104,18 @@ export default class CustomContract<C extends BaseContract> {
       );
     }
   }
-  protected _mustBeAddress(address: string) {
-    if (!isAddress(address)) {
-      throw new Error(`❌  ⬇️  Bad input address is not a valid address: ${address}`);
-    }
+  protected _mustBeAddress(...addresses: (string | undefined)[]) {
+    // remove undefined addresses
+    addresses.filter((address) => address !== undefined);
+    if (addresses.length > 1) {
+      for (const address of addresses) {
+        this._mustBeAddress(address);
+      }
+    } else if ((addresses.length = 1)) {
+      if (!isAddress(addresses[0])) {
+        throw new Error(`❌  ⬇️  Bad input address is not a valid address: ${addresses[0]}`);
+      }
+    } // else do nothing
   }
   protected async _checkExecutionEvent(events: (EventLog | Log)[]) {
     if (!events || events.length < 1) {
@@ -128,10 +143,7 @@ export default class CustomContract<C extends BaseContract> {
   }
 }
 
-interface IDeployResult {
-  contract: BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
-      BaseContract,
-      keyof BaseContract
-    >;
+export interface ICCDeployResult<C extends BaseContract = BaseContract> {
+  contract: CustomContract<C>;
   receipt: ContractTransactionReceipt;
 }

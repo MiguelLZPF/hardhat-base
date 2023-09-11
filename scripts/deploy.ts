@@ -10,6 +10,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
   Contract,
   BaseContract,
+  ContractFactory,
   Signer,
   Provider,
   TransactionReceipt,
@@ -28,7 +29,7 @@ import {
 import yesno from "yesno";
 import { readFileSync, writeFileSync, existsSync, statSync } from "fs";
 import { ContractName, PromiseOrValue } from "models/Configuration";
-import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
+import { ProxyAdmin, ProxyAdmin__factory, TransparentUpgradeableProxy } from "typechain-types";
 import CustomContract from "models/CustomContract";
 
 const PROXY_ADMIN_ARTIFACT = getArtifact("ProxyAdmin");
@@ -41,7 +42,7 @@ const PROXY_ADMIN_CODEHASH = keccak256(PROXY_ADMIN_ARTIFACT.deployedBytecode);
  * @param _args arguments to use in the constructor
  * @param txValue contract creation transaccion value
  */
-export async function deploy<T extends BaseContract = BaseContract>(
+export async function deploy<T extends Contract = Contract>(
   contractName: ContractName,
   deployer: Signer,
   args: ContractMethodArgs<any[]>,
@@ -53,7 +54,7 @@ export async function deploy<T extends BaseContract = BaseContract>(
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
   // get the artifact of the contract name
   const artifact = getArtifact(contractName);
-  const { contract, receipt } = await CustomContract.deploy(
+  const { contract, receipt } = await CustomContract.deploy<ContractFactory, T>(
     artifact.abi,
     artifact.bytecode,
     deployer,
@@ -62,17 +63,17 @@ export async function deploy<T extends BaseContract = BaseContract>(
   );
   //* Store contract deployment information
   const deployment: IRegularDeployment = {
-    address: await contract.getAddress(),
+    address: contract.address,
     contractName: contractName,
-    deployTimestamp: await getContractTimestamp(contract as Contract, receipt.hash),
+    deployTimestamp: await getContractTimestamp(contract.contract, receipt.hash),
     deployTxHash: receipt.hash,
-    byteCodeHash: keccak256((await contract.getDeployedCode())!), // await gProvider.getCode(contract.getAddress())),
+    byteCodeHash: keccak256((await contract.contract.getDeployedCode())!), // await gProvider.getCode(contract.getAddress())),
     tag: tag,
   };
   save ? await saveDeployment(deployment) : undefined;
   return {
     deployment: deployment,
-    contractInstance: contract as T,
+    contractInstance: contract,
   };
 }
 
@@ -90,9 +91,7 @@ export async function deployUpgradeable<T extends BaseContract = BaseContract>(
   args: ContractMethodArgs<any[]>,
   tag?: string,
   overrides?: Overrides,
-  proxyAdmin: string | ProxyAdmin | undefined = CONTRACTS.get("ProxyAdmin")?.address.get(
-    gNetwork.name
-  ),
+  proxyAdmin?: string | ProxyAdmin | CustomContract<ProxyAdmin>,
   initialize: boolean = false,
   save: boolean = false
 ): Promise<IUpgrDeployReturn<T>> {
@@ -453,6 +452,41 @@ export const changeLogic = async (
 
   return { previousLogic, actualLogic, receipt };
 };
+
+// Todo: change to CustomProxyAdmin
+export async function getProxyAdmin(
+  proxyAdmin: string | ProxyAdmin | CustomContract<ProxyAdmin> | undefined = CONTRACTS.get(
+    "ProxyAdmin"
+  )?.address.get(gNetwork.name)
+) {
+  if (proxyAdmin && typeof proxyAdmin === "string") {
+    return new CustomContract<ProxyAdmin>(proxyAdmin, ProxyAdmin__factory.abi, gProvider);
+  } else if (proxyAdmin && proxyAdmin instanceof CustomContract) {
+    return new CustomContract<ProxyAdmin>(
+      proxyAdmin.address,
+      proxyAdmin.contract.interface,
+      proxyAdmin.contract.runner || gProvider
+    );
+  } else if (proxyAdmin) {
+    proxyAdmin = proxyAdmin as ProxyAdmin;
+    return new CustomContract<ProxyAdmin>(
+      await proxyAdmin.getAddress(),
+      proxyAdmin.interface,
+      proxyAdmin.runner || gProvider
+    );
+  } else {
+    const firstDeployedAdmin = await getProxyAdminDeployment();
+    if (firstDeployedAdmin) {
+      return new CustomContract<ProxyAdmin>(
+        firstDeployedAdmin.address,
+        ProxyAdmin__factory.abi,
+        gProvider
+      );
+    } else {
+      return undefined;
+    }
+  }
+}
 
 /**
  * Saves a deployments JSON file with the updated deployments information
