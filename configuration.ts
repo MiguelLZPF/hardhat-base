@@ -6,6 +6,7 @@ import {
   INetwork,
   NetworkName,
 } from "models/Configuration";
+import { Overrides } from "ethers";
 
 /**
  * The KEYSTORE environment constant group is used to agrupate the constants related to the Encryped JSON wallets
@@ -50,7 +51,7 @@ export const BLOCKCHAIN = {
     [
       undefined,
       {
-        chainId: 31337,
+        chainId: BigInt(31337),
         name: "hardhat",
         protocol: "http",
         hostname: "127.0.0.1",
@@ -60,7 +61,7 @@ export const BLOCKCHAIN = {
     [
       "hardhat",
       {
-        chainId: 31337,
+        chainId: BigInt(31337),
         name: "hardhat",
         protocol: "http",
         hostname: "localhost",
@@ -70,7 +71,7 @@ export const BLOCKCHAIN = {
     [
       "ganache",
       {
-        chainId: 1337,
+        chainId: BigInt(1337),
         name: "ganache",
         protocol: "http",
         hostname: "localhost",
@@ -81,7 +82,7 @@ export const BLOCKCHAIN = {
     [
       "mainTest",
       {
-        chainId: 1666,
+        chainId: BigInt(1666),
         name: "mainTest",
         protocol: "http",
         hostname: "192.168.12.32",
@@ -99,7 +100,7 @@ export const GAS_OPT = {
     // gasPrice: BLOCKCHAIN.default.gasPrice,
     maxPriorityFeePerGas: BLOCKCHAIN.default.maxPriorityFeePerGas,
     maxFeePerGas: BLOCKCHAIN.default.maxFeePerGas,
-  },
+  } as Overrides,
 };
 
 export const DEPLOY = {
@@ -135,7 +136,7 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     CONTRACT_NAMES[2],
     {
       name: CONTRACT_NAMES[2],
-      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
       address: new Map([
         ["hardhat", undefined],
         ["ganache", undefined],
@@ -147,7 +148,7 @@ export const CONTRACTS = new Map<ContractName, IContract>([
     CONTRACT_NAMES[3],
     {
       name: CONTRACT_NAMES[3],
-      artifact: `node_modules/decentralized-code-trust/artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
+      artifact: `artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
       address: new Map([
         ["hardhat", undefined],
         ["ganache", undefined],

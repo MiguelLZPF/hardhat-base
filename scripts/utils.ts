@@ -1,8 +1,7 @@
 import { BLOCKCHAIN, CONTRACTS } from "configuration";
 import { ContractName, INetwork, NetworkName } from "models/Configuration";
 import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
-import { Contract, constants, Signer } from "ethers";
-import { BlockTag, JsonRpcProvider, Provider } from "@ethersproject/providers";
+import { Contract, Signer, Provider, BlockTag } from "ethers";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import util from "util";
 import { getContractDeployment } from "./deploy";
@@ -11,10 +10,8 @@ import { IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
 export let gEthers: HardhatRuntimeEnvironment["ethers"];
-export let gProvider: JsonRpcProvider;
+export let gProvider: Provider;
 export let gNetwork: INetwork;
-
-export const ADDR_ZERO = constants.AddressZero;
 
 /**
  * Set Global HRE
@@ -25,15 +22,11 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
-  gNetwork = BLOCKCHAIN.networks.get(
-    chainIdToNetwork.get(
-      gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
-    )
-  )!;
+  gNetwork = BLOCKCHAIN.networks.get(chainIdToNetwork.get((await gProvider.getNetwork()).chainId))!;
   return { gProvider, gNetwork };
 };
 
-export const chainIdToNetwork = new Map<number | undefined, NetworkName>([
+export const chainIdToNetwork = new Map<BigInt | undefined, NetworkName>([
   [undefined, "hardhat"],
   [BLOCKCHAIN.networks.get("hardhat")!.chainId, "hardhat"],
   [BLOCKCHAIN.networks.get("ganache")!.chainId, "ganache"],
@@ -54,7 +47,7 @@ export function getArtifact(contractName?: ContractName, path?: string): Artifac
  */
 export const getContractInstance = async <T = Contract>(
   contractName: ContractName,
-  signerOrProvider: Signer | Provider | JsonRpcProvider = gProvider,
+  signerOrProvider: Signer | Provider = gProvider,
   contractOrAddress?: string | Contract
 ): Promise<T> => {
   // get contract information from deployments file (async)
@@ -65,7 +58,7 @@ export const getContractInstance = async <T = Contract>(
   const finalAddress =
     typeof contractOrAddress == "string"
       ? contractOrAddress
-      : contractOrAddress?.address ||
+      : (await contractOrAddress?.getAddress()) ||
         CONTRACTS.get(contractName)?.address.get(gNetwork.name) ||
         ((await deployment) as IRegularDeployment)?.address ||
         ((await deployment) as IUpgradeDeployment).logic;
@@ -84,22 +77,21 @@ export const getContractInstance = async <T = Contract>(
  * Check if directories are present, if they aren't, create them
  * @param reqPath path to extract directories and check them
  */
-export const checkDirectoriesInPath = async (reqPath: string) => {
+export const checkDirectoriesInPath = (reqPath: string) => {
   // get all directories to be checked, including keystore root
   const splitPath = reqPath.split("/");
   let directories: string[] = [splitPath[0]];
   for (let i = 1; i < splitPath.length - 1; i++) {
     directories.push(directories[i - 1] + "/" + splitPath[i]);
   }
-  //console.log(directories);
-  await checkDirectories(directories);
+  checkDirectories(directories);
 };
 
 /**
  * Check if directories are present, if they aren't, create them
  * @param reqDirectories Required directories tree in hierarchical order
  */
-export const checkDirectories = async (reqDirectories: string[]) => {
+export const checkDirectories = (reqDirectories: string[]) => {
   for (const directory of reqDirectories) {
     if (!existsSync(directory)) {
       mkdirSync(directory);
@@ -113,8 +105,8 @@ export const checkDirectories = async (reqDirectories: string[]) => {
  * @param provider (optional) [gProvider] the provider to use
  * @returns the timestamp in seconds
  */
-export const getTimeStamp = async (block?: BlockTag, provider: JsonRpcProvider = gProvider) => {
-  return (await provider.getBlock(block || "latest")).timestamp;
+export const getTimeStamp = async (block?: BlockTag, provider: Provider = gProvider) => {
+  return (await provider.getBlock(block || "latest"))?.timestamp;
 };
 
 /**
