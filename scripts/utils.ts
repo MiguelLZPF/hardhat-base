@@ -1,11 +1,22 @@
 import { BLOCKCHAIN, CONTRACTS } from "configuration";
 import { ContractName, INetwork, NetworkName } from "models/Configuration";
 import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
-import { Contract, Signer, Provider, BlockTag } from "ethers";
+import {
+  Contract,
+  BaseContract,
+  TransactionReceipt,
+  Signer,
+  Provider,
+  BlockTag,
+  keccak256,
+  isAddress,
+} from "ethers";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import util from "util";
 import { getContractDeployment } from "./deploy";
 import { IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
+
+export const PROXY_ADMIN_CODEHASH = keccak256(getArtifact("ProxyAdmin").deployedBytecode);
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
@@ -35,6 +46,9 @@ export const chainIdToNetwork = new Map<BigInt | undefined, NetworkName>([
 
 export function getArtifact(contractName?: ContractName, path?: string): Artifact {
   path = path ? path : CONTRACTS.get(contractName!)!.artifact;
+  if (!path) {
+    throw new Error(`❌ Artifact path not provided or found: ${path}`);
+  }
   return JSON.parse(readFileSync(path, "utf-8")) as Artifact;
 }
 
@@ -71,6 +85,36 @@ export const getContractInstance = async <T = Contract>(
   // create and return contract instance
   const contract = new Contract(finalAddress, artifact.abi, signerOrProvider);
   return contract as T;
+};
+
+/**
+ * Gets the deployed contract timestamp
+ * @param contract contract instance to use
+ * @param deployTxHash (optional | undefined) it can be used to retrive timestamp
+ * @param hre (optional | ghre) use custom HRE
+ * @returns ISO string date time representation of the contract timestamp
+ */
+export const getContractTimestamp = async (
+  contract: BaseContract | Contract,
+  deployTxHash?: string
+) => {
+  let provider = contract.runner?.provider ? contract.runner.provider : gProvider;
+  let receipt: TransactionReceipt | null;
+  if (contract.deploymentTransaction() && contract.deploymentTransaction()!.hash) {
+    receipt = await provider.getTransactionReceipt(contract.deploymentTransaction()!.hash);
+  } else if (deployTxHash && isAddress(deployTxHash)) {
+    receipt = await provider.getTransactionReceipt(deployTxHash);
+  } else {
+    console.error("❌  🔎  Cannot get Tx from contract or parameter");
+    return undefined;
+  }
+  if (receipt && receipt.blockHash) {
+    const timestampSeconds = (await provider.getBlock(receipt.blockHash))!.timestamp;
+    return new Date(timestampSeconds * 1000).toISOString();
+  } else {
+    console.error("❌  ⛓️  Cannot get Tx Block Hash");
+    return undefined;
+  }
 };
 
 /**

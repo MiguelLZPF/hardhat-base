@@ -19,6 +19,7 @@ export default class Storage extends CustomContract<StorageType> {
       initialValue,
     ]) as unknown as StorageType;
   }
+
   //* Custom contract functions
   async store(num: BigNumberish) {
     // Check if valid signer

@@ -32,20 +32,29 @@ export default class CustomContract<C extends BaseContract> {
     this.address = address;
   }
   //* Static methods
-  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
+  static async deploy<
+    F extends ContractFactory = ContractFactory,
+    C extends BaseContract = BaseContract,
+  >(
     abi: Interface | InterfaceAbi,
     bytecode: BytesLike | { object: string },
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides
   ): Promise<ICCDeployResult<C>>;
-  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
+  static async deploy<
+    F extends ContractFactory = ContractFactory,
+    C extends BaseContract = BaseContract,
+  >(
     factory: F,
     signer?: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides
   ): Promise<ICCDeployResult<C>>;
-  static async deploy<F extends ContractFactory = ContractFactory, C extends BaseContract = BaseContract>(
+  static async deploy<
+    F extends ContractFactory = ContractFactory,
+    C extends BaseContract = BaseContract,
+  >(
     factoryOrAbi: F | Interface | InterfaceAbi,
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
@@ -56,7 +65,6 @@ export default class CustomContract<C extends BaseContract> {
         BaseContract,
         keyof BaseContract
       >;
-    let receipt: ContractTransactionReceipt | null | undefined;
     if (factoryOrAbi instanceof ContractFactory) {
       const args = signerOrArgs as ContractMethodArgs<any[]>;
       contract = bytecodeOrSigner
@@ -72,7 +80,7 @@ export default class CustomContract<C extends BaseContract> {
         ) as F
       ).deploy(...args, overrides);
     }
-    receipt = await contract.deploymentTransaction()?.wait();
+    const receipt = await contract.deploymentTransaction()?.wait();
     if (!receipt) {
       throw new Error(`❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`);
     }

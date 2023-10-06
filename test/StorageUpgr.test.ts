@@ -78,7 +78,7 @@ describe("Storage", () => {
           GAS_OPT.max,
           false
         );
-        proxyAdmin = proxyAdminDeployResult.contractInstance as ProxyAdmin;
+        proxyAdmin = proxyAdminDeployResult.contract as ProxyAdmin;
         // deploy Storage
         const deployResult = await deployUpgradeable<IStorage & Ownable>(
           CONTRACT_NAME,
@@ -90,7 +90,7 @@ describe("Storage", () => {
           true
         );
         // get the upgradeable instance as IStorage
-        storage = deployResult.contractInstance;
+        storage = deployResult.contract;
         const storageAddr = await storage.getAddress();
         expect(isAddress(storageAddr)).to.be.true;
         expect(storageAddr).not.to.equal(ZeroAddress);
