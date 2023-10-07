@@ -12,9 +12,8 @@ import {
   BytesLike,
   Overrides,
   keccak256,
-  isAddress,
 } from "ethers";
-import { PROXY_ADMIN_CODEHASH, getContractInstance } from "scripts/utils";
+import { PROXY_ADMIN_CODEHASH } from "scripts/utils";
 import CustomContract, { ICCDeployResult } from "./CustomContract";
 import {
   ProxyAdmin,
@@ -35,36 +34,36 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
   proxyAdminAddress?: string;
   //* Contructor
   constructor(
-    address: string,
+    proxy: string,
     abi: Interface | InterfaceAbi,
     signer: Signer,
     logic: string,
     proxyAdmin?: string
   );
   constructor(
-    address: string,
+    proxy: string,
     abi: Interface | InterfaceAbi,
     provider: Provider,
     logic: string,
     proxyAdmin?: string
   );
   constructor(
-    address: string,
+    proxy: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
     logic: string,
     proxyAdmin?: string
   );
   constructor(
-    address: string,
+    proxy: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
     logic: string,
     proxyAdmin?: string
   ) {
-    super(address, abi, runner);
+    super(proxy, abi, runner);
     this._mustBeAddress(logic, proxyAdmin);
-    this.proxy = new Contract(address, TUP__factory.abi, runner) as unknown as TUP;
+    this.proxy = new Contract(proxy, TUP__factory.abi, runner) as unknown as TUP;
     this.logic = new Contract(logic, abi, runner) as unknown as C;
     this.proxyAdmin = proxyAdmin
       ? (new Contract(proxyAdmin, TUP__factory.abi, runner) as unknown as ProxyAdmin)

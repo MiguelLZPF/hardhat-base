@@ -1,30 +1,47 @@
 import { Provider, Signer, ContractRunner, BigNumberish, Overrides } from "ethers";
-import { Storage as StorageType, Storage__factory } from "typechain-types";
-import CustomContract from "models/CustomContract";
+import { StorageUpgr as StorageType, StorageUpgr__factory } from "typechain-types";
+import CustomUpgrContract, { ICCUpgrDeployResult } from "models/CustomUpgrContract";
 
-export default class Storage extends CustomContract<StorageType> {
+export default class StorageUpgr extends CustomUpgrContract<StorageType> {
   // factory: Storage__factory;
   number: number | BigInt | undefined;
 
-  constructor(address: string, signer: Signer);
-  constructor(address: string, provider: Provider);
-  constructor(address: string, runner: ContractRunner);
-  constructor(address: string, runner: ContractRunner) {
-    super(address, Storage__factory.abi, runner);
+  constructor(proxy: string, signer: Signer, logic: string, proxyAdmin: string);
+  constructor(proxy: string, provider: Provider, logic: string, proxyAdmin: string);
+  constructor(proxy: string, runner: ContractRunner, logic: string, proxyAdmin: string);
+  constructor(proxy: string, runner: ContractRunner, logic: string, proxyAdmin: string) {
+    super(proxy, StorageUpgr__factory.abi, runner, logic, proxyAdmin);
     this.number = undefined;
   }
 
   static async deployStorage(
     signer: Signer,
+    proxyAdmin: string,
     initialValue?: number,
-    overrides?: Overrides
+    overrides?: Overrides,
+    initialize = false
   ): Promise<StorageType> {
-    return super.deploy<Storage__factory>(
-      new Storage__factory(signer),
-      undefined,
+    return super.deployUpgradeable<StorageUpgr__factory>(
+      new StorageUpgr__factory(signer),
+      proxyAdmin,
+      signer,
       initialValue ? [initialValue] : undefined,
-      overrides
+      overrides,
+      initialize
     ) as unknown as StorageType;
+  }
+
+  async upgradeStorage(
+    initialValue?: number,
+    overrides?: Overrides,
+    initialize = false
+  ): Promise<ICCUpgrDeployResult<StorageType>> {
+    return super.upgrade(
+      StorageUpgr__factory.bytecode,
+      initialValue ? [initialValue] : undefined,
+      overrides,
+      initialize
+    );
   }
 
   //* Custom contract functions
