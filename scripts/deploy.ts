@@ -165,7 +165,7 @@ export async function deployUpgradeable<C extends Contract = Contract>(
     logic: deployResult.contract.logicAddress!,
     contractName: contractName,
     deployTimestamp: await getContractTimestamp(deployResult.contract.proxy),
-    proxyDeployTxHash: deployResult.contract.proxy.deploymentTransaction()?.hash,
+    proxyDeployTxHash: deployResult.receipt.hash,
     logicDeployTxHash: deployResult.contract.logic!.deploymentTransaction()?.hash,
     byteCodeHash: keccak256((await deployResult.contract.logic!.getDeployedCode())!),
     tag: tag,
@@ -181,7 +181,7 @@ export async function deployUpgradeable<C extends Contract = Contract>(
   return {
     deployment: deployment,
     adminDeployment: adminDeployment,
-    contract: deployResult.contract
+    contract: deployResult.contract,
   };
 }
 
@@ -193,21 +193,18 @@ export async function deployUpgradeable<C extends Contract = Contract>(
  * @param proxy (optional) [undefined] address to identifie multiple contracts with the same name and network
  * @param proxyAdmin (optional) [ROXY_ADMIN_ADDRESS] custom proxy admin address
  */
-export async function upgrade<T extends BaseContract = BaseContract>(
+export async function upgrade<C extends BaseContract = BaseContract>(
   contractName: ContractName,
   deployer: Signer,
   args: ContractMethodArgs<any[]>,
   proxy?: string,
   overrides?: Overrides,
-  proxyAdmin: string | ProxyAdmin | undefined = CONTRACTS.get("ProxyAdmin")?.address.get(
-    gNetwork.name
-  ),
+  proxyAdmin = CONTRACTS.get("ProxyAdmin")?.address.get(gNetwork.name),
   initialize: boolean = false,
   save: boolean = false
-): Promise<IUpgrDeployReturn<T>> {
+): Promise<IUpgrDeployReturn<C>> {
   // check if deployer is connected to the provider
   deployer = deployer.provider ? deployer : deployer.connect(gProvider);
-  const adminAddr = deployer.getAddress();
   // get contract deployment if proxy
   let contractDeployment: PromiseOrValue<IUpgradeDeployment>;
   contractDeployment = (
@@ -218,120 +215,53 @@ export async function upgrade<T extends BaseContract = BaseContract>(
   //* Proxy Admin
   if (proxyAdmin && typeof proxyAdmin == "string" && isAddress(proxyAdmin)) {
     // use given address as ProxyAdmin
-    proxyAdmin = await getContractInstance<ProxyAdmin>("ProxyAdmin", deployer, proxyAdmin);
+    proxyAdmin = proxyAdmin as string;
   } else if (proxyAdmin && typeof proxyAdmin == "string" /*  && !isAddress(proxyAdmin) */) {
     // given a proxy admin but is not an address nor a ProxyAdmin
     throw new Error("String provided as Proxy Admin's address is not an address");
-  } else if (proxyAdmin && typeof proxyAdmin != "string") {
-    // use given ProxyAdmin
-    proxyAdmin = proxyAdmin as ProxyAdmin;
   } else {
     // no proxy admin provided
     contractDeployment = await contractDeployment;
     if (!contractDeployment || !contractDeployment.admin) {
       throw new Error(`ERROR: No proxy deployment found for proxy address: ${proxy}`);
     }
-    proxyAdmin = await getContractInstance<ProxyAdmin>(
-      "ProxyAdmin",
-      deployer,
-      contractDeployment.admin
-    );
+    proxyAdmin = contractDeployment.admin;
   }
-  const proxyAdminAddr = await proxyAdmin.getAddress();
-  // check if proxy admin is a ProxyAdmin Contract
-  try {
-    const proxyAdminCode = await deployer.provider!.getCode(proxyAdminAddr);
-    if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
-      throw new Error(`ERROR: ProxyAdmin(${proxyAdminAddr}) is not a ProxyAdmin Contract`);
-    }
-  } catch (error) {
-    throw new Error(`ERROR: ProxyAdmin(${proxyAdminAddr}) is not a ProxyAdmin Contract`);
-  }
-  //* Actual contracts
-  const deployResult = await deploy(
-    contractName,
-    deployer,
-    undefined,
-    undefined,
-    GAS_OPT.max,
-    false
-  );
-  const newLogic = deployResult.contract;
-  const newLogicAddr = await newLogic.getAddress();
-  const timestamp = getContractTimestamp(newLogic);
-  if (!newLogic || !newLogicAddr) {
-    throw new Error("Logic|Implementation not deployed properly");
-  }
-  console.log(`New logic contract deployed at: ${newLogicAddr}`);
-
-  // -- encode function params for TUP
-  let initData: string;
-  if (initialize) {
-    initData = newLogic.interface.encodeFunctionData("initialize", [...args]);
-  } else {
-    initData = newLogic.interface._encodeParams([], []);
-  }
-  //* TUP - Transparent Upgradeable Proxy
   contractDeployment = await contractDeployment;
-  // Previous Logic
-  const previousLogic: Promise<string> = proxyAdmin.getProxyImplementation(
-    contractDeployment.proxy
-  );
-  let receipt: TransactionReceipt | null;
   if (!contractDeployment.proxy) {
     throw new Error("ERROR: contract retrieved is not upgradeable");
-  } else if (args.length > 0) {
-    console.info(
-      `Performing upgrade and call from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogicAddr}`
-    );
-    receipt = await (
-      await proxyAdmin.upgradeAndCall(
-        contractDeployment.proxy,
-        newLogicAddr,
-        initData,
-        overrides || GAS_OPT.max
-      )
-    ).wait();
-  } else {
-    console.info(
-      `Performing upgrade from ${proxyAdminAddr} to proxy ${contractDeployment.proxy} from logic ${contractDeployment.logic} to ${newLogicAddr}`
-    );
-    receipt = await (
-      await proxyAdmin.upgrade(contractDeployment.proxy, newLogicAddr, overrides || GAS_OPT.max)
-    ).wait();
   }
-  if (!receipt) {
-    throw new Error("Transaction execution failed. Undefined Receipt");
-  }
-  const newLogicFromAdmin: Promise<string> = proxyAdmin.getProxyImplementation(
-    contractDeployment.proxy
+  const artifact = getArtifact(contractName);
+  const customContract = new CustomUpgrContract<C>(
+    contractDeployment.proxy,
+    artifact.abi,
+    deployer,
+    contractDeployment.logic,
+    proxyAdmin
   );
-  if ((await newLogicFromAdmin) == (await previousLogic)) {
-    throw new Error("Upgrade failed. Previous address and new one are the same");
-  }
-  if ((await newLogicFromAdmin) != newLogicAddr) {
-    throw new Error("Upgrade failed. Logic addresess does not match");
-  }
+  const upgradeResult = await customContract.upgrade(
+    artifact.bytecode,
+    args,
+    overrides,
+    initialize
+  );
+
   //* Store contract deployment information
-  contractDeployment.logic = newLogicAddr;
+  contractDeployment.logic = upgradeResult.contract.logicAddress;
   contractDeployment.contractName = contractName;
-  contractDeployment.logicDeployTxHash = newLogic.deploymentTransaction()!.hash;
-  contractDeployment.byteCodeHash = keccak256(await deployer.provider!.getCode(newLogicAddr));
-  contractDeployment.upgradeTimestamp = await timestamp;
+  contractDeployment.logicDeployTxHash = upgradeResult.receipt.hash;
+  contractDeployment.byteCodeHash = keccak256(
+    await deployer.provider!.getCode(contractDeployment.logic)
+  );
+  contractDeployment.upgradeTimestamp = await getContractTimestamp(upgradeResult.contract.proxy);
   if (save) {
     // store deployment information
     await saveDeployment(contractDeployment);
   }
   return {
     deployment: contractDeployment,
-    proxyAdminInstance: proxyAdmin,
-    tupInstance: await getContractInstance(
-      "TransparentUpgradeableProxy",
-      deployer,
-      contractDeployment.proxy
-    ),
-    logicInstance: newLogic as T,
-    contract: await getContractInstance(contractName, deployer, contractDeployment.proxy),
+    adminDeployment: await getProxyAdminDeployment(upgradeResult.contract.proxyAddress),
+    contract: upgradeResult.contract,
   };
 }
 
