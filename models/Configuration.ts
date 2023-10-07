@@ -26,6 +26,8 @@ export interface INetwork {
 
 export interface IContract {
   name: ContractName;
-  artifact: string;
+  abi?: any;
+  bytecode?: string;
+  artifact?: string;
   address: Map<NetworkName, string | undefined>;
 }

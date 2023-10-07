@@ -76,7 +76,7 @@ describe("Storage", () => {
           GAS_OPT.max,
           false
         );
-        storage = deployResult.contractInstance;
+        storage = deployResult.contract;
         const storageAddr = await storage.getAddress();
         expect(isAddress(storageAddr)).to.be.true;
         expect(storageAddr).not.to.equal(ZeroAddress);
