@@ -1,8 +1,9 @@
-import { Provider, Signer, ContractRunner, BigNumberish, Overrides } from "ethers";
-import { Storage as StorageType, Storage__factory } from "typechain-types";
-import CustomContract from "models/CustomContract";
+import { Provider, Signer, ContractRunner, BigNumberish, Overrides, isAddress } from "ethers";
+import { Ownable, Storage as StorageType, Storage__factory } from "typechain-types";
+import CustomContract, { ICCDeployResult } from "models/CustomContract";
+import { GAS_OPT } from "configuration";
 
-export default class Storage extends CustomContract<StorageType> {
+export default class Storage extends CustomContract<StorageType & Ownable> {
   // factory: Storage__factory;
   number: number | BigInt | undefined;
 
@@ -17,18 +18,65 @@ export default class Storage extends CustomContract<StorageType> {
   static async deployStorage(
     signer: Signer,
     initialValue?: number,
-    overrides?: Overrides
-  ): Promise<StorageType> {
-    return super.deploy<Storage__factory>(
+    overrides: Overrides = GAS_OPT.max
+  ): Promise<IStorageDeployResult> {
+    const deployResult = await super.deploy<Storage__factory, StorageType>(
       new Storage__factory(signer),
       undefined,
       initialValue ? [initialValue] : undefined,
       overrides
-    ) as unknown as StorageType;
+    );
+    return { contract: deployResult.contract as Storage, receipt: deployResult.receipt };
   }
 
   //* Custom contract functions
-  async store(num: BigNumberish, overrides?: Overrides) {
+  async transferOwnership(newOwner: string, overrides: Overrides = GAS_OPT.max) {
+    // Check if valid address
+    this._mustBeAddress(newOwner);
+    // Check if valid signer
+    this._checkSigner();
+    // Get signer's address
+    const oldOwner = (this.contract.runner as Signer).getAddress();
+    // Actual transaction
+    const receipt = await (
+      await this.contract.transferOwnership(newOwner, { ...overrides })
+    ).wait();
+    if (!receipt) {
+      throw new Error(
+        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Receipt is undefined`
+      );
+    }
+    // Search for events to secure execution
+    let events = await this.contract.queryFilter(
+      this.contract.filters.OwnershipTransferred(await oldOwner, newOwner),
+      receipt?.blockNumber,
+      receipt?.blockNumber
+    );
+    if ((await this._checkExecutionEvent(events)) !== true) {
+      throw new Error(
+        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Execution event not found`
+      );
+    }
+    // All OK Transacction executed
+    return {
+      oldOwner: await oldOwner,
+      newOwner: newOwner,
+      receipt: receipt,
+      event: events[0],
+    };
+  }
+  // Ownable
+  async owner(): Promise<string | undefined> {
+    const owner = await super.contract.owner();
+    if (isAddress(owner)) {
+      return owner;
+    } else {
+      return undefined;
+    }
+  }
+
+  // Storage
+  async store(num: BigNumberish, overrides: Overrides = GAS_OPT.max) {
     // Check if valid signer
     this._checkSigner();
     // Actual transaction
@@ -53,6 +101,32 @@ export default class Storage extends CustomContract<StorageType> {
     return { num: num, receipt: receipt, event: events[0] };
   }
 
+  async payMe(overrides: Overrides = GAS_OPT.max) {
+    // Check if valid signer
+    this._checkSigner();
+    // Actual transaction
+    const receipt = await (await this.contract.payMe({ ...overrides })).wait();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Cannot pay in ${this.contract.getAddress()}. Receipt is undefined`);
+    }
+    // Search for events to secure execution
+    let events = await this.contract.queryFilter(
+      this.contract.filters.ThankYou(
+        await (this.contract.runner as Signer).getAddress(),
+        await this.owner()
+      ),
+      receipt?.blockNumber,
+      receipt?.blockNumber
+    );
+    if ((await this._checkExecutionEvent(events)) !== true) {
+      throw new Error(
+        `❌  ⛓️  Cannot pay in ${this.contract.getAddress()}. Execution event not found`
+      );
+    }
+    // All OK Transacction executed
+    return { receipt: receipt, event: events[0] };
+  }
+
   async retrieve(): Promise<BigNumberish> {
     let result: BigNumberish = await this.contract.retrieve();
     try {
@@ -63,4 +137,8 @@ export default class Storage extends CustomContract<StorageType> {
     this.number = result;
     return result;
   }
+}
+
+export interface IStorageDeployResult extends Omit<ICCDeployResult<StorageType>, "contract"> {
+  contract: Storage;
 }

@@ -4,8 +4,6 @@ import { step } from "mocha-steps";
 import { expect } from "chai";
 import {
   Provider,
-  Wallet,
-  HDNodeWallet,
   Block,
   TransactionReceipt,
   ContractTransactionReceipt,
@@ -13,10 +11,10 @@ import {
   isAddress,
   parseEther,
 } from "ethers";
-import { IStorage, Ownable } from "typechain-types";
-import { getContractInstance, setGlobalHRE } from "scripts/utils";
+import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
-import { deploy } from "scripts/deploy";
+import CustomWallet from "scripts/wallets";
+import Storage from "models/Storage";
 
 // Specific Constants
 const CONTRACT_NAME = "Storage";
@@ -26,15 +24,15 @@ const INIT_VALUE = 12;
 // General Variables
 let provider: Provider;
 let network: INetwork;
-let accounts: Wallet[] = [];
+let accounts: CustomWallet[] = [];
 let lastReceipt: ContractTransactionReceipt | TransactionReceipt | null;
 let lastBlock: Block | null;
 // Specific Variables
 // -- wallets | accounts
-let admin: Wallet;
-let defaultUser: Wallet;
+let admin: CustomWallet;
+let defaultUser: CustomWallet;
 // -- contracts
-let storage: IStorage & Ownable;
+let storage: Storage;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
     ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(HRE));
@@ -44,13 +42,13 @@ describe("Storage", () => {
     }
     console.log(`✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
     // Generate TEST.accountNumber wallets
-    const baseWallet = HDNodeWallet.fromPhrase(
+    const baseWallet = CustomWallet.fromPhrase(
       KEYSTORE.default.mnemonic.phrase,
       undefined,
       KEYSTORE.default.mnemonic.basePath
     );
     for (let index = 0; index < TEST.accountNumber; index++) {
-      accounts.push(new Wallet(baseWallet.deriveChild(index).privateKey, provider));
+      accounts.push(new CustomWallet(baseWallet.deriveChild(index).privateKey, provider));
     }
     // set specific roles
     admin = accounts[0];
@@ -60,27 +58,18 @@ describe("Storage", () => {
   describe("Deployment and Initialization", () => {
     if (STORAGE_DEPLOYED_AT) {
       step("Should create contract instance", async () => {
-        storage = await getContractInstance<IStorage & Ownable>(CONTRACT_NAME, admin);
-        const storageAddr = await storage.getAddress();
-        expect(isAddress(storageAddr)).to.be.true;
-        expect(storageAddr).to.equal(STORAGE_DEPLOYED_AT);
-        console.log(`${CONTRACT_NAME} contract recovered at: ${storageAddr}`);
+        storage = new Storage(STORAGE_DEPLOYED_AT, admin);
+        expect(isAddress(storage.address)).to.be.true;
+        expect(storage.address).to.equal(STORAGE_DEPLOYED_AT);
+        console.log(`${CONTRACT_NAME} contract recovered at: ${storage.address}`);
       });
     } else {
       step("Should deploy contract", async () => {
-        const deployResult = await deploy<IStorage & Ownable>(
-          CONTRACT_NAME,
-          admin,
-          [INIT_VALUE],
-          undefined,
-          GAS_OPT.max,
-          false
-        );
+        const deployResult = await Storage.deployStorage(admin, INIT_VALUE);
         storage = deployResult.contract;
-        const storageAddr = await storage.getAddress();
-        expect(isAddress(storageAddr)).to.be.true;
-        expect(storageAddr).not.to.equal(ZeroAddress);
-        console.log(`NEW ${CONTRACT_NAME} contract deployed at: ${storageAddr}`);
+        expect(isAddress(storage.address)).to.be.true;
+        expect(storage.address).not.to.equal(ZeroAddress);
+        console.log(`NEW ${CONTRACT_NAME} contract deployed at: ${storage.address}`);
       });
       step("Should check if correct initialization", async () => {
         const response = await storage.retrieve();
@@ -91,7 +80,7 @@ describe("Storage", () => {
 
   describe("Main", () => {
     before("Set the correct signer", async () => {
-      storage = storage.connect(defaultUser) as IStorage & Ownable;
+      storage.connect(defaultUser);
     });
     step("Should store new value", async () => {
       // check initial state
@@ -99,14 +88,7 @@ describe("Storage", () => {
       expect(previous).equal(INIT_VALUE);
       // change stored value
       const newValue = 21;
-      lastReceipt = await (await storage.store(newValue, GAS_OPT.max)).wait();
-      expect(lastReceipt).not.to.be.null;
-      const events = await storage.queryFilter(
-        storage.filters.Stored(newValue),
-        lastReceipt!.blockNumber,
-        lastReceipt!.blockNumber
-      );
-      expect(events.length).to.equal(1);
+      await storage.store(newValue);
       // check final state
       const final = await storage.retrieve();
       expect(final).to.equal(newValue);
@@ -115,7 +97,7 @@ describe("Storage", () => {
 
   describe("Owner", () => {
     before("Set the correct signer", async () => {
-      storage = storage.connect(admin) as IStorage & Ownable;
+      storage.connect(admin);
     });
 
     step("Should transfer ownership", async () => {
@@ -123,40 +105,20 @@ describe("Storage", () => {
       const previous = await storage.owner();
       expect(previous).equal(admin.address);
       // change owner
-      lastReceipt = await (
-        await storage.transferOwnership(defaultUser.address, GAS_OPT.max)
-      ).wait();
-      expect(lastReceipt).not.to.be.null;
-      const events = await storage.queryFilter(
-        storage.filters.OwnershipTransferred(admin.address, defaultUser.address),
-        lastReceipt!.blockNumber,
-        lastReceipt!.blockNumber
-      );
-      expect(events.length).to.equal(1);
+      await storage.transferOwnership(defaultUser.address, GAS_OPT.max);
       // check final state
       const final = await storage.owner();
       expect(final).to.equal(defaultUser.address);
     });
 
     step("Should transfer back the ownership", async () => {
-      // check initial state
+      // Check initial state
       const previous = await storage.owner();
       expect(previous).equal(defaultUser.address);
-      // change owner
-      lastReceipt = await (
-        await (storage.connect(defaultUser) as IStorage & Ownable).transferOwnership(
-          admin.address,
-          GAS_OPT.max
-        )
-      ).wait();
-      expect(lastReceipt).not.to.be.null;
-      const events = await storage.queryFilter(
-        storage.filters.OwnershipTransferred(defaultUser.address, admin.address),
-        lastReceipt!.blockNumber,
-        lastReceipt!.blockNumber
-      );
-      expect(events.length).to.equal(1);
-      // check final state
+      // Change owner
+      storage.connect(defaultUser);
+      await storage.transferOwnership(admin.address, GAS_OPT.max);
+      // Check final state
       const final = await storage.owner();
       expect(final).to.equal(admin.address);
     });
@@ -164,7 +126,7 @@ describe("Storage", () => {
 
   describe("PayMe", () => {
     before("Set the correct signer", async () => {
-      storage = storage.connect(defaultUser) as IStorage & Ownable;
+      storage.connect(defaultUser);
     });
     step("Should pay the owner of the contract", async () => {
       const amount = parseEther("13.0");
@@ -176,14 +138,7 @@ describe("Storage", () => {
       expect(initBalances.admin).greaterThanOrEqual(0);
       expect(initBalances.defaultUser).greaterThanOrEqual(0);
       // pay contract
-      lastReceipt = await (await storage.payMe({ ...GAS_OPT.max, value: amount })).wait();
-      expect(lastReceipt).not.to.be.null;
-      const events = await storage.queryFilter(
-        storage.filters.ThankYou(undefined, defaultUser.address),
-        lastReceipt!.blockNumber,
-        lastReceipt!.blockNumber
-      );
-      expect(events.length).to.equal(1);
+      await storage.payMe({ ...GAS_OPT.max, value: amount });
       // check final state
       const finalBalances = {
         admin: await provider.getBalance(admin.address),

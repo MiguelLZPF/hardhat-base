@@ -102,6 +102,7 @@ export default class CustomContract<C extends BaseContract> {
   }
   connect(runner: ContractRunner) {
     this.contract = this.contract.connect(runner) as typeof this.contract;
+    return this;
   }
 
   //* Protected generic functions
