@@ -25,29 +25,18 @@ import type {
 export interface ProxyAdminInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "changeProxyAdmin"
-      | "getProxyAdmin"
-      | "getProxyImplementation"
+      | "UPGRADE_INTERFACE_VERSION"
       | "owner"
       | "renounceOwnership"
       | "transferOwnership"
-      | "upgrade"
       | "upgradeAndCall"
   ): FunctionFragment;
 
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
 
   encodeFunctionData(
-    functionFragment: "changeProxyAdmin",
-    values: [AddressLike, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getProxyAdmin",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getProxyImplementation",
-    values: [AddressLike]
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -59,24 +48,12 @@ export interface ProxyAdminInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "upgrade",
-    values: [AddressLike, AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "upgradeAndCall",
     values: [AddressLike, AddressLike, BytesLike]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "changeProxyAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getProxyAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getProxyImplementation",
+    functionFragment: "UPGRADE_INTERFACE_VERSION",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -88,7 +65,6 @@ export interface ProxyAdminInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "upgrade", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "upgradeAndCall",
     data: BytesLike
@@ -151,19 +127,7 @@ export interface ProxyAdmin extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  changeProxyAdmin: TypedContractMethod<
-    [proxy: AddressLike, newAdmin: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  getProxyAdmin: TypedContractMethod<[proxy: AddressLike], [string], "view">;
-
-  getProxyImplementation: TypedContractMethod<
-    [proxy: AddressLike],
-    [string],
-    "view"
-  >;
+  UPGRADE_INTERFACE_VERSION: TypedContractMethod<[], [string], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
@@ -171,12 +135,6 @@ export interface ProxyAdmin extends BaseContract {
 
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  upgrade: TypedContractMethod<
-    [proxy: AddressLike, implementation: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -192,18 +150,8 @@ export interface ProxyAdmin extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "changeProxyAdmin"
-  ): TypedContractMethod<
-    [proxy: AddressLike, newAdmin: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "getProxyAdmin"
-  ): TypedContractMethod<[proxy: AddressLike], [string], "view">;
-  getFunction(
-    nameOrSignature: "getProxyImplementation"
-  ): TypedContractMethod<[proxy: AddressLike], [string], "view">;
+    nameOrSignature: "UPGRADE_INTERFACE_VERSION"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -213,13 +161,6 @@ export interface ProxyAdmin extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "upgrade"
-  ): TypedContractMethod<
-    [proxy: AddressLike, implementation: AddressLike],
-    [void],
-    "nonpayable"
-  >;
   getFunction(
     nameOrSignature: "upgradeAndCall"
   ): TypedContractMethod<

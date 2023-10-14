@@ -1,4 +1,4 @@
-import { GAS_OPT, KEYSTORE, TEST } from "configuration";
+import { GAS_OPT, TEST } from "configuration";
 import * as HRE from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
@@ -29,21 +29,25 @@ describe("Storage", () => {
     ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(HRE));
     lastBlock = await provider.getBlock("latest");
     if (!lastBlock || lastBlock.number < 0) {
-      throw new Error(`❌  🛜  Cannot connect with Provider. No block number could be retreived`);
+      throw new Error(
+        `❌  🛜  Cannot connect with Provider. No block number could be retreived`,
+      );
     }
-    console.log(`✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`);
-    // Generate TEST.accountNumber wallets
-    const baseWallet = CustomWallet.fromPhrase(
-      KEYSTORE.default.mnemonic.phrase,
-      undefined,
-      KEYSTORE.default.mnemonic.basePath
+    console.log(
+      `✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
     );
+    // Generate TEST.accountNumber wallets
+    const baseWallet = CustomWallet.fromPhrase();
     for (let index = 0; index < TEST.accountNumber; index++) {
-      accounts.push(new CustomWallet(baseWallet.deriveChild(index).privateKey, provider));
+      accounts.push(
+        new CustomWallet(baseWallet.deriveChild(index).privateKey, provider),
+      );
     }
     // set specific roles
     admin = accounts[0];
     defaultUser = accounts[1];
+    console.log(admin.address);
+    console.log((await HRE.ethers.provider.getSigner(0)).address);
   });
 
   describe("Deployment and Initialization", () => {
@@ -52,7 +56,9 @@ describe("Storage", () => {
         storage = new Storage(STORAGE_DEPLOYED_AT, admin);
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).to.equal(STORAGE_DEPLOYED_AT);
-        console.log(`${CONTRACT_NAME} contract recovered at: ${storage.address}`);
+        console.log(
+          `${CONTRACT_NAME} contract recovered at: ${storage.address}`,
+        );
       });
     } else {
       step("Should deploy contract", async () => {
@@ -60,7 +66,9 @@ describe("Storage", () => {
         storage = deployResult.contract;
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).not.to.equal(ZeroAddress);
-        console.log(`NEW ${CONTRACT_NAME} contract deployed at: ${storage.address}`);
+        console.log(
+          `NEW ${CONTRACT_NAME} contract deployed at: ${storage.address}`,
+        );
       });
       step("Should check if correct initialization", async () => {
         const response = await storage.retrieve();

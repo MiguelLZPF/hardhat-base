@@ -8,7 +8,7 @@ pragma solidity >=0.8.2 <0.9.0;
 interface IStorage {
   // EVENTS
   event Stored(uint256 indexed num);
-  event ThankYou(address from, address indexed to, string message);
+  event ThankYou(address indexed from, address indexed to, string message);
 
   /**
    * @dev Store value in variable

@@ -1,12 +1,18 @@
 import { KEYSTORE } from "configuration";
-import { Wallet, Provider, HDNodeWallet, ProgressCallback, SigningKey } from "ethers";
+import {
+  Wallet,
+  Provider,
+  HDNodeWallet,
+  ProgressCallback,
+  SigningKey,
+} from "ethers";
 import { writeFileSync } from "fs";
 import { checkDirectoriesInPath, gProvider } from "scripts/utils";
 
 export default class CustomWallet extends Wallet {
   constructor(
     key: string | SigningKey = KEYSTORE.default.privateKey,
-    provider: Provider = gProvider
+    provider: Provider = gProvider,
   ) {
     super(key, provider);
   }
@@ -18,11 +24,14 @@ export default class CustomWallet extends Wallet {
   static override fromPhrase(
     phrase: string = KEYSTORE.default.mnemonic.phrase,
     provider: Provider = gProvider,
-    path: string = KEYSTORE.default.mnemonic.path
+    path: string = KEYSTORE.default.mnemonic.basePath,
   ): HDNodeWallet {
     return HDNodeWallet.fromPhrase(
-      phrase.toLowerCase() === "default" ? KEYSTORE.default.mnemonic.phrase : phrase,
-      path
+      phrase.toLowerCase() === "default"
+        ? KEYSTORE.default.mnemonic.phrase
+        : phrase,
+      undefined,
+      path,
     ).connect(provider);
   }
 
@@ -31,7 +40,7 @@ export default class CustomWallet extends Wallet {
     password: string | Uint8Array = KEYSTORE.default.password,
     progress?: ProgressCallback,
     isAbsolutePath = false,
-    provider = gProvider
+    provider = gProvider,
   ): Promise<CustomWallet | HDNodeWallet> {
     if (!isAbsolutePath) {
       // remove "/"
@@ -42,15 +51,15 @@ export default class CustomWallet extends Wallet {
       json = `${KEYSTORE.root}/${json}`;
     }
     checkDirectoriesInPath(json);
-    return (await super.fromEncryptedJson(json, password, progress)).connect(provider) as
-      | CustomWallet
-      | HDNodeWallet;
+    return (await super.fromEncryptedJson(json, password, progress)).connect(
+      provider,
+    ) as CustomWallet | HDNodeWallet;
   }
   static override fromEncryptedJsonSync(
     json: string,
     password: string | Uint8Array = KEYSTORE.default.password,
     isAbsolutePath = false,
-    provider: Provider = gProvider
+    provider: Provider = gProvider,
   ): CustomWallet | HDNodeWallet {
     if (!isAbsolutePath) {
       // remove "/"
@@ -68,18 +77,20 @@ export default class CustomWallet extends Wallet {
 
   override async encrypt(
     password: string | Uint8Array = KEYSTORE.default.password,
-    progressCallback?: ProgressCallback | undefined
+    progressCallback?: ProgressCallback | undefined,
   ): Promise<string> {
     return super.encrypt(password, progressCallback);
   }
-  override encryptSync(password: string | Uint8Array = KEYSTORE.default.password): string {
+  override encryptSync(
+    password: string | Uint8Array = KEYSTORE.default.password,
+  ): string {
     return super.encryptSync(password);
   }
-  
+
   storeEncrypted(
     path: string,
     password: string | Uint8Array = KEYSTORE.default.password,
-    isAbsolutePath = false
+    isAbsolutePath = false,
   ) {
     if (!isAbsolutePath) {
       // remove "/"

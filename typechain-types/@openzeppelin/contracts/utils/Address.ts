@@ -5,8 +5,6 @@ import type {
   BaseContract,
   FunctionFragment,
   Interface,
-  EventFragment,
-  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -15,31 +13,16 @@ import type {
   TypedContractEvent,
   TypedDeferredTopicFilter,
   TypedEventLog,
-  TypedLogDescription,
   TypedListener,
-} from "../../../../common";
+} from "../../../common";
 
-export interface ERC1967ProxyInterface extends Interface {
-  getEvent(nameOrSignatureOrTopic: "Upgraded"): EventFragment;
-}
+export interface AddressInterface extends Interface {}
 
-export namespace UpgradedEvent {
-  export type InputTuple = [implementation: AddressLike];
-  export type OutputTuple = [implementation: string];
-  export interface OutputObject {
-    implementation: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export interface ERC1967Proxy extends BaseContract {
-  connect(runner?: ContractRunner | null): ERC1967Proxy;
+export interface Address extends BaseContract {
+  connect(runner?: ContractRunner | null): Address;
   waitForDeployment(): Promise<this>;
 
-  interface: ERC1967ProxyInterface;
+  interface: AddressInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -82,24 +65,5 @@ export interface ERC1967Proxy extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getEvent(
-    key: "Upgraded"
-  ): TypedContractEvent<
-    UpgradedEvent.InputTuple,
-    UpgradedEvent.OutputTuple,
-    UpgradedEvent.OutputObject
-  >;
-
-  filters: {
-    "Upgraded(address)": TypedContractEvent<
-      UpgradedEvent.InputTuple,
-      UpgradedEvent.OutputTuple,
-      UpgradedEvent.OutputObject
-    >;
-    Upgraded: TypedContractEvent<
-      UpgradedEvent.InputTuple,
-      UpgradedEvent.OutputTuple,
-      UpgradedEvent.OutputObject
-    >;
-  };
+  filters: {};
 }

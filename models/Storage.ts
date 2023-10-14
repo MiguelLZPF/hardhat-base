@@ -1,5 +1,16 @@
-import { Provider, Signer, ContractRunner, BigNumberish, Overrides, isAddress } from "ethers";
-import { Ownable, Storage as StorageType, Storage__factory } from "typechain-types";
+import {
+  Provider,
+  Signer,
+  ContractRunner,
+  BigNumberish,
+  Overrides,
+  isAddress,
+} from "ethers";
+import {
+  Ownable,
+  Storage as StorageType,
+  Storage__factory,
+} from "typechain-types";
 import CustomContract, { ICCDeployResult } from "models/CustomContract";
 import { GAS_OPT } from "configuration";
 
@@ -18,19 +29,31 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
   static async deployStorage(
     signer: Signer,
     initialValue?: number,
-    overrides: Overrides = GAS_OPT.max
+    overrides: Overrides = GAS_OPT.max,
   ): Promise<IStorageDeployResult> {
-    const deployResult = await super.deploy<Storage__factory, StorageType>(
+    const deployResult = await super.deploy<
+      Storage__factory,
+      StorageType & Ownable
+    >(
       new Storage__factory(signer),
       undefined,
       initialValue ? [initialValue] : undefined,
-      overrides
+      overrides,
     );
-    return { contract: deployResult.contract as Storage, receipt: deployResult.receipt };
+    return {
+      contract: new Storage(
+        deployResult.contract.address,
+        deployResult.contract.contract.runner as Signer,
+      ),
+      receipt: deployResult.receipt,
+    };
   }
 
   //* Custom contract functions
-  async transferOwnership(newOwner: string, overrides: Overrides = GAS_OPT.max) {
+  async transferOwnership(
+    newOwner: string,
+    overrides: Overrides = GAS_OPT.max,
+  ) {
     // Check if valid address
     this._mustBeAddress(newOwner);
     // Check if valid signer
@@ -43,18 +66,18 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     ).wait();
     if (!receipt) {
       throw new Error(
-        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Receipt is undefined`
+        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Receipt is undefined`,
       );
     }
     // Search for events to secure execution
     let events = await this.contract.queryFilter(
       this.contract.filters.OwnershipTransferred(await oldOwner, newOwner),
       receipt?.blockNumber,
-      receipt?.blockNumber
+      receipt?.blockNumber,
     );
     if ((await this._checkExecutionEvent(events)) !== true) {
       throw new Error(
-        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Execution event not found`
+        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Execution event not found`,
       );
     }
     // All OK Transacction executed
@@ -67,7 +90,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
   }
   // Ownable
   async owner(): Promise<string | undefined> {
-    const owner = await super.contract.owner();
+    const owner = await this.contract.owner();
     if (isAddress(owner)) {
       return owner;
     } else {
@@ -80,21 +103,23 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     // Check if valid signer
     this._checkSigner();
     // Actual transaction
-    const receipt = await (await this.contract.store(num, { ...overrides })).wait();
+    const receipt = await (
+      await this.contract.store(num, { ...overrides })
+    ).wait();
     if (!receipt) {
       throw new Error(
-        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Receipt is undefined`
+        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Receipt is undefined`,
       );
     }
     // Search for events to secure execution
     let events = await this.contract.queryFilter(
       this.contract.filters.Stored(num),
       receipt?.blockNumber,
-      receipt?.blockNumber
+      receipt?.blockNumber,
     );
     if ((await this._checkExecutionEvent(events)) !== true) {
       throw new Error(
-        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Execution event not found`
+        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Execution event not found`,
       );
     }
     // All OK Transacction executed
@@ -107,20 +132,23 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     // Actual transaction
     const receipt = await (await this.contract.payMe({ ...overrides })).wait();
     if (!receipt) {
-      throw new Error(`❌  ⛓️  Cannot pay in ${this.contract.getAddress()}. Receipt is undefined`);
+      throw new Error(
+        `❌  ⛓️  Cannot pay in ${this.address}. Receipt is undefined`,
+      );
     }
     // Search for events to secure execution
     let events = await this.contract.queryFilter(
       this.contract.filters.ThankYou(
+        await this.owner(),
         await (this.contract.runner as Signer).getAddress(),
-        await this.owner()
+        undefined,
       ),
       receipt?.blockNumber,
-      receipt?.blockNumber
+      receipt?.blockNumber,
     );
     if ((await this._checkExecutionEvent(events)) !== true) {
       throw new Error(
-        `❌  ⛓️  Cannot pay in ${this.contract.getAddress()}. Execution event not found`
+        `❌  ⛓️  Cannot pay in ${this.address}. Execution event not found`,
       );
     }
     // All OK Transacction executed
@@ -139,6 +167,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
   }
 }
 
-export interface IStorageDeployResult extends Omit<ICCDeployResult<StorageType>, "contract"> {
+export interface IStorageDeployResult
+  extends Omit<ICCDeployResult<StorageType>, "contract"> {
   contract: Storage;
 }

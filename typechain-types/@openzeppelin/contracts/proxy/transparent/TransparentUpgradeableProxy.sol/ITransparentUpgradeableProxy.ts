@@ -23,47 +23,17 @@ import type {
 } from "../../../../../common";
 
 export interface ITransparentUpgradeableProxyInterface extends Interface {
-  getFunction(
-    nameOrSignature:
-      | "admin"
-      | "changeAdmin"
-      | "implementation"
-      | "upgradeTo"
-      | "upgradeToAndCall"
-  ): FunctionFragment;
+  getFunction(nameOrSignature: "upgradeToAndCall"): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic: "AdminChanged" | "BeaconUpgraded" | "Upgraded"
   ): EventFragment;
 
-  encodeFunctionData(functionFragment: "admin", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "changeAdmin",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "implementation",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "upgradeTo",
-    values: [AddressLike]
-  ): string;
   encodeFunctionData(
     functionFragment: "upgradeToAndCall",
     values: [AddressLike, BytesLike]
   ): string;
 
-  decodeFunctionResult(functionFragment: "admin", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "changeAdmin",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "implementation",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "upgradeTo", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "upgradeToAndCall",
     data: BytesLike
@@ -150,14 +120,6 @@ export interface ITransparentUpgradeableProxy extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  admin: TypedContractMethod<[], [string], "view">;
-
-  changeAdmin: TypedContractMethod<[arg0: AddressLike], [void], "nonpayable">;
-
-  implementation: TypedContractMethod<[], [string], "view">;
-
-  upgradeTo: TypedContractMethod<[arg0: AddressLike], [void], "nonpayable">;
-
   upgradeToAndCall: TypedContractMethod<
     [arg0: AddressLike, arg1: BytesLike],
     [void],
@@ -168,18 +130,6 @@ export interface ITransparentUpgradeableProxy extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getFunction(
-    nameOrSignature: "admin"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "changeAdmin"
-  ): TypedContractMethod<[arg0: AddressLike], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "implementation"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "upgradeTo"
-  ): TypedContractMethod<[arg0: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "upgradeToAndCall"
   ): TypedContractMethod<

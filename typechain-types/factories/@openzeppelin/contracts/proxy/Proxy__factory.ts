@@ -13,10 +13,6 @@ const _abi = [
     stateMutability: "payable",
     type: "fallback",
   },
-  {
-    stateMutability: "payable",
-    type: "receive",
-  },
 ] as const;
 
 export class Proxy__factory {

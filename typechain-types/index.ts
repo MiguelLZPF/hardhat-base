@@ -14,16 +14,14 @@ export type { ContextUpgradeable } from "./@openzeppelin/contracts-upgradeable/u
 export { ContextUpgradeable__factory } from "./factories/@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable__factory";
 export type { Ownable } from "./@openzeppelin/contracts/access/Ownable";
 export { Ownable__factory } from "./factories/@openzeppelin/contracts/access/Ownable__factory";
-export type { IERC1822Proxiable } from "./@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable";
-export { IERC1822Proxiable__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable__factory";
 export type { IERC1967 } from "./@openzeppelin/contracts/interfaces/IERC1967";
 export { IERC1967__factory } from "./factories/@openzeppelin/contracts/interfaces/IERC1967__factory";
 export type { IBeacon } from "./@openzeppelin/contracts/proxy/beacon/IBeacon";
 export { IBeacon__factory } from "./factories/@openzeppelin/contracts/proxy/beacon/IBeacon__factory";
 export type { ERC1967Proxy } from "./@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy";
 export { ERC1967Proxy__factory } from "./factories/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy__factory";
-export type { ERC1967Upgrade } from "./@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade";
-export { ERC1967Upgrade__factory } from "./factories/@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade__factory";
+export type { ERC1967Utils } from "./@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils";
+export { ERC1967Utils__factory } from "./factories/@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils__factory";
 export type { Proxy } from "./@openzeppelin/contracts/proxy/Proxy";
 export { Proxy__factory } from "./factories/@openzeppelin/contracts/proxy/Proxy__factory";
 export type { ProxyAdmin } from "./@openzeppelin/contracts/proxy/transparent/ProxyAdmin";
@@ -32,6 +30,8 @@ export type { ITransparentUpgradeableProxy } from "./@openzeppelin/contracts/pro
 export { ITransparentUpgradeableProxy__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy__factory";
 export type { TransparentUpgradeableProxy } from "./@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy";
 export { TransparentUpgradeableProxy__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy__factory";
+export type { Address } from "./@openzeppelin/contracts/utils/Address";
+export { Address__factory } from "./factories/@openzeppelin/contracts/utils/Address__factory";
 export type { IStorage } from "./contracts/interfaces/IStorage";
 export { IStorage__factory } from "./factories/contracts/interfaces/IStorage__factory";
 export type { Storage } from "./contracts/Storage";
