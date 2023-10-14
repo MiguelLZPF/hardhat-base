@@ -5,24 +5,24 @@ import "./interfaces/IStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Storage is IStorage, Ownable(msg.sender) {
-    uint256 number;
+  uint256 number;
 
-    constructor(uint256 initialValue) {
-        number = initialValue;
-    }
+  constructor(uint256 initialValue) {
+    number = initialValue;
+  }
 
-    function store(uint256 num) public {
-        number = num;
-        emit Stored(num);
-    }
+  function store(uint256 num) public {
+    number = num;
+    emit Stored(num);
+  }
 
-    function retrieve() public view returns (uint256) {
-        return number;
-    }
+  function retrieve() public view returns (uint256) {
+    return number;
+  }
 
-    function payMe() public payable {
-        (bool success, ) = payable(owner()).call{value: msg.value}("");
-        require(success, "Failed to send money");
-        emit ThankYou(owner(), _msgSender(), "Thanks!!");
-    }
+  function payMe() public payable {
+    (bool success, ) = payable(owner()).call{value: msg.value}("");
+    require(success, "Failed to send money");
+    emit ThankYou(owner(), _msgSender(), "Thanks!!");
+  }
 }
