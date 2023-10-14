@@ -2,15 +2,7 @@ import { GAS_OPT, KEYSTORE, TEST } from "configuration";
 import * as HRE from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
-import {
-  Provider,
-  Block,
-  TransactionReceipt,
-  ContractTransactionReceipt,
-  ZeroAddress,
-  isAddress,
-  parseEther,
-} from "ethers";
+import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
 import CustomWallet from "scripts/wallets";
@@ -25,7 +17,6 @@ const INIT_VALUE = 12;
 let provider: Provider;
 let network: INetwork;
 let accounts: CustomWallet[] = [];
-let lastReceipt: ContractTransactionReceipt | TransactionReceipt | null;
 let lastBlock: Block | null;
 // Specific Variables
 // -- wallets | accounts
