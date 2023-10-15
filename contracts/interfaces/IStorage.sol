@@ -8,7 +8,6 @@ pragma solidity >=0.8.2 <0.9.0;
 interface IStorage {
   // EVENTS
   event Stored(uint256 indexed num);
-  event ThankYou(address indexed from, address indexed to, string message);
 
   /**
    * @dev Store value in variable
@@ -21,6 +20,4 @@ interface IStorage {
    * @return value of 'number'
    */
   function retrieve() external view returns (uint256);
-
-  function payMe() external payable;
 }
