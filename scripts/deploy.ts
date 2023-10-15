@@ -30,7 +30,12 @@ import {
 import yesno from "yesno";
 import { readFileSync, writeFileSync, existsSync, statSync } from "fs";
 import { ContractName, PromiseOrValue } from "models/Configuration";
-import { ProxyAdmin, ProxyAdmin__factory } from "typechain-types";
+import {
+  ProxyAdmin,
+  ProxyAdmin__factory,
+  TUP,
+  TUP__factory,
+} from "typechain-types";
 import CustomContract from "models/CustomContract";
 import CustomUpgrContract from "models/CustomUpgrContract";
 
@@ -302,34 +307,42 @@ export async function upgrade<C extends BaseContract = BaseContract>(
 
 export const getLogic = async (
   proxy: string,
-  proxyAdmin?: string,
-  signerOrProvider?: Signer | Provider,
+  // proxyAdmin?: string,
+  signerOrProvider: Signer | Provider,
 ) => {
-  proxyAdmin = proxyAdmin || (await getProxyAdminDeployment(proxy))?.address;
-  if (!proxyAdmin) {
-    throw new Error(`ERROR: ${proxy} NOT found in this network`);
-  }
-  // instanciate the ProxyAdmin
-  const proxyAdminContract = await getContractInstance<ProxyAdmin>(
-    "ProxyAdmin",
+  // proxyAdmin = proxyAdmin || (await getProxyAdminDeployment(proxy))?.address;
+  // if (!proxyAdmin) {
+  //   throw new Error(`ERROR: ${proxy} NOT found in this network`);
+  // }
+  // // instanciate the ProxyAdmin
+  // const proxyAdminContract = await getContractInstance<ProxyAdmin>(
+  //   "ProxyAdmin",
+  //   signerOrProvider,
+  //   proxyAdmin,
+  // );
+  // // check if proxy admin is a ProxyAdmin Contract
+  // try {
+  //   const proxyAdminCode = await proxyAdminContract.getDeployedCode();
+  //   if (keccak256(proxyAdminCode!) != PROXY_ADMIN_CODEHASH) {
+  //     throw new Error(
+  //       `ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`,
+  //     );
+  //   }
+  // } catch (error) {
+  //   throw new Error(
+  //     `ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`,
+  //   );
+  // }
+  //* TUP
+  const tup = new CustomContract(
+    proxy,
+    TUP__factory.abi,
     signerOrProvider,
-    proxyAdmin,
-  );
-  // check if proxy admin is a ProxyAdmin Contract
-  try {
-    const proxyAdminCode = await proxyAdminContract.getDeployedCode();
-    if (keccak256(proxyAdminCode!) != PROXY_ADMIN_CODEHASH) {
-      throw new Error(
-        `ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`,
-      );
-    }
-  } catch (error) {
-    throw new Error(
-      `ERROR: ProxyAdmin(${proxyAdmin}) is not a ProxyAdmin Contract`,
-    );
-  }
-  // Get Provider
-  const provider = proxyAdminContract.runner!.provider!;
+  ) as unknown as TUP;
+  //* Get provider
+  const provider = ((signerOrProvider as Signer).provider ||
+    (signerOrProvider as Provider))!;
+  //* Get data from blockchain
   const callResults = await Promise.all([
     // get actual logic address directly from the proxy's storage
     provider.getStorage(
@@ -342,9 +355,9 @@ export const getLogic = async (
       "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
     ),
     // get actual logic address from ProxyAdmin
-    proxyAdminContract.getProxyImplementation(proxy),
+    tup.getImplementation(),
     // get actual admin address from ProxyAdmin
-    proxyAdminContract.getProxyAdmin(proxy),
+    tup.getProxyAdmin(),
   ]);
 
   // return as an object
