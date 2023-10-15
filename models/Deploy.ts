@@ -1,6 +1,7 @@
 import { ContractName, NetworkName } from "models/Configuration";
-import { Contract, BytesLike } from "ethers";
-import { ProxyAdmin, TransparentUpgradeableProxy } from "typechain-types";
+import { BaseContract, BytesLike } from "ethers";
+import CustomContract from "models/CustomContract";
+import CustomUpgrContract from "models/CustomUpgrContract";
 
 interface IDeployment {
   contractName: ContractName;
@@ -26,7 +27,7 @@ export interface IUpgradeDeployment extends IDeployment {
 export interface INetworkDeployment {
   network: {
     name: NetworkName;
-    chainId: number;
+    chainId: BigInt;
   };
   smartContracts: {
     proxyAdmins?: IRegularDeployment[];
@@ -34,19 +35,13 @@ export interface INetworkDeployment {
   };
 }
 
-export interface IDeployReturn {
+export interface IDeployReturn<T extends BaseContract> {
   deployment: IRegularDeployment;
-  contractInstance: Contract;
+  contract: CustomContract<T>;
 }
 
-export interface IUpgrDeployReturn extends Omit<IDeployReturn, "deployment"> {
+export interface IUpgrDeployReturn<T extends BaseContract> {
   deployment: IUpgradeDeployment;
   adminDeployment?: IRegularDeployment;
-  logicInstance: Contract;
-  tupInstance: TransparentUpgradeableProxy | Contract;
-  proxyAdminInstance?: ProxyAdmin;
-}
-
-export interface IUpgradeReturn extends Omit<IDeployReturn, "deployment"> {
-  deployment: IUpgradeDeployment;
+  contract: CustomUpgrContract<T>;
 }

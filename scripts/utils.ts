@@ -1,18 +1,28 @@
 import { BLOCKCHAIN, CONTRACTS } from "configuration";
 import { ContractName, INetwork, NetworkName } from "models/Configuration";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { Contract, constants, Signer, ContractFactory } from "ethers";
-import { BlockTag, JsonRpcProvider } from "@ethersproject/providers";
+import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
+import {
+  Contract,
+  BaseContract,
+  TransactionReceipt,
+  Signer,
+  Provider,
+  BlockTag,
+  keccak256,
+  isAddress,
+} from "ethers";
 import { existsSync, mkdirSync, readFileSync } from "fs";
 import util from "util";
+import { getContractDeployment } from "./deploy";
+import { IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
+
+export const PROXY_ADMIN_CODEHASH = keccak256(getArtifact("ProxyAdmin").deployedBytecode);
 
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
 export let gEthers: HardhatRuntimeEnvironment["ethers"];
-export let gProvider: JsonRpcProvider;
+export let gProvider: Provider;
 export let gNetwork: INetwork;
-
-export const ADDR_ZERO = constants.AddressZero;
 
 /**
  * Set Global HRE
@@ -23,20 +33,24 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
-  gNetwork = BLOCKCHAIN.networks.get(
-    chainIdToNetwork.get(
-      gProvider.network ? gProvider.network.chainId : (await gProvider.getNetwork()).chainId
-    )
-  )!;
+  gNetwork = BLOCKCHAIN.networks.get(chainIdToNetwork.get((await gProvider.getNetwork()).chainId))!;
   return { gProvider, gNetwork };
 };
 
-export const chainIdToNetwork = new Map<number | undefined, NetworkName>([
+export const chainIdToNetwork = new Map<BigInt | undefined, NetworkName>([
   [undefined, "hardhat"],
   [BLOCKCHAIN.networks.get("hardhat")!.chainId, "hardhat"],
   [BLOCKCHAIN.networks.get("ganache")!.chainId, "ganache"],
   [BLOCKCHAIN.networks.get("mainTest")!.chainId, "mainTest"],
 ]);
+
+export function getArtifact(contractName?: ContractName, path?: string): Artifact {
+  path = path ? path : CONTRACTS.get(contractName!)!.artifact;
+  if (!path) {
+    throw new Error(`❌ Artifact path not provided or found: ${path}`);
+  }
+  return JSON.parse(readFileSync(path, "utf-8")) as Artifact;
+}
 
 /**
  * Create a new instance of a deployed contract
@@ -45,39 +59,83 @@ export const chainIdToNetwork = new Map<number | undefined, NetworkName>([
  * @param contractAddr (optional) [Contracts.<contractName>.<network>.address] address of the deployed contract
  * @returns instance of the contract attached to contractAddr and connected to signer or provider
  */
-export const getContractInstance = async (
+export const getContractInstance = async <T = Contract>(
   contractName: ContractName,
-  signer?: Signer,
-  contractAddr?: string
-): Promise<Contract> => {
-  const artifact = JSON.parse(readFileSync(CONTRACTS.get(contractName)!.artifact, "utf-8"));
-  const factory = new ContractFactory(artifact.abi, artifact.bytecode, signer);
-  const contract = factory.attach(
-    contractAddr || CONTRACTS.get(contractName)!.address.get(gNetwork.name)!
-  );
-  return signer ? contract : contract.connect(gProvider);
+  signerOrProvider: Signer | Provider = gProvider,
+  contractOrAddress?: string | Contract
+): Promise<T> => {
+  // get contract information from deployments file (async)
+  const deployment = getContractDeployment(contractName);
+  // get artifact from config file
+  const artifact = getArtifact(contractName);
+  // get the contract's addres from 1. parameter, 2. config file or 3. deployments.json
+  const finalAddress =
+    typeof contractOrAddress == "string"
+      ? contractOrAddress
+      : (await contractOrAddress?.getAddress()) ||
+        CONTRACTS.get(contractName)?.address.get(gNetwork.name) ||
+        ((await deployment) as IRegularDeployment)?.address ||
+        ((await deployment) as IUpgradeDeployment).logic;
+  // Check if valid address was found
+  if (!finalAddress) {
+    throw new Error(
+      `Cannot find contract ${contractName} address in parameter | config file | deployments file`
+    );
+  }
+  // create and return contract instance
+  const contract = new Contract(finalAddress, artifact.abi, signerOrProvider);
+  return contract as T;
+};
+
+/**
+ * Gets the deployed contract timestamp
+ * @param contract contract instance to use
+ * @param deployTxHash (optional | undefined) it can be used to retrive timestamp
+ * @param hre (optional | ghre) use custom HRE
+ * @returns ISO string date time representation of the contract timestamp
+ */
+export const getContractTimestamp = async (
+  contract: BaseContract | Contract,
+  deployTxHash?: string
+) => {
+  let provider = contract.runner?.provider ? contract.runner.provider : gProvider;
+  let receipt: TransactionReceipt | null;
+  if (contract.deploymentTransaction() && contract.deploymentTransaction()!.hash) {
+    receipt = await provider.getTransactionReceipt(contract.deploymentTransaction()!.hash);
+  } else if (deployTxHash && isAddress(deployTxHash)) {
+    receipt = await provider.getTransactionReceipt(deployTxHash);
+  } else {
+    console.error("❌  🔎  Cannot get Tx from contract or parameter");
+    return undefined;
+  }
+  if (receipt && receipt.blockHash) {
+    const timestampSeconds = (await provider.getBlock(receipt.blockHash))!.timestamp;
+    return new Date(timestampSeconds * 1000).toISOString();
+  } else {
+    console.error("❌  ⛓️  Cannot get Tx Block Hash");
+    return undefined;
+  }
 };
 
 /**
  * Check if directories are present, if they aren't, create them
  * @param reqPath path to extract directories and check them
  */
-export const checkDirectoriesInPath = async (reqPath: string) => {
+export const checkDirectoriesInPath = (reqPath: string) => {
   // get all directories to be checked, including keystore root
   const splitPath = reqPath.split("/");
   let directories: string[] = [splitPath[0]];
   for (let i = 1; i < splitPath.length - 1; i++) {
     directories.push(directories[i - 1] + "/" + splitPath[i]);
   }
-  //console.log(directories);
-  await checkDirectories(directories);
+  checkDirectories(directories);
 };
 
 /**
  * Check if directories are present, if they aren't, create them
  * @param reqDirectories Required directories tree in hierarchical order
  */
-export const checkDirectories = async (reqDirectories: string[]) => {
+export const checkDirectories = (reqDirectories: string[]) => {
   for (const directory of reqDirectories) {
     if (!existsSync(directory)) {
       mkdirSync(directory);
@@ -91,8 +149,8 @@ export const checkDirectories = async (reqDirectories: string[]) => {
  * @param provider (optional) [gProvider] the provider to use
  * @returns the timestamp in seconds
  */
-export const getTimeStamp = async (block?: BlockTag, provider: JsonRpcProvider = gProvider) => {
-  return (await provider.getBlock(block || "latest")).timestamp;
+export const getTimeStamp = async (block?: BlockTag, provider: Provider = gProvider) => {
+  return (await provider.getBlock(block || "latest"))?.timestamp;
 };
 
 /**
@@ -110,4 +168,22 @@ export const logObject = (object: any) => {
  */
 export function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Checks if an object is empty.
+ * An object is considered empty if it has no enumerable properties.
+ *
+ * @param obj - The object to be checked for emptiness.
+ * @returns `true` if the object is empty, `false` otherwise.
+ *
+ * @example
+ * const emptyObject = {};
+ * const nonEmptyObject = { key: 'value' };
+ *
+ * console.log(isObjectEmpty(emptyObject)); // Output: true
+ * console.log(isObjectEmpty(nonEmptyObject)); // Output: false
+ */
+export function isObjectEmpty(obj: object): boolean {
+  return Object.keys(obj).length === 0;
 }

@@ -1,36 +1,37 @@
+import { TransactionRequest } from "ethers";
 import { ContractName } from "models/Configuration";
 
 //* Tasks Interfaces
 export interface ISignerInformation {
   relativePath?: string;
-  password: string;
+  password?: string;
   privateKey?: string;
   mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
+  mnemonicPath?: string;
 }
 
-export interface IGenerateWallets extends ISignerInformation {
+export interface IGenerateWallets extends Omit<ISignerInformation, "relativePath"> {
+  type?: string;  
   batchSize?: number;
-  entropy?: string;
-  type: string;
-  connect: boolean;
+  relativePath?: string;
 }
 
 export interface IGetWalletInfo {
   relativePath?: string;
-  password: string;
+  password?: string;
+  privateKey?: string;
   mnemonicPhrase?: string;
-  mnemonicPath: string;
-  mnemonicLocale: string;
-  showPrivate: boolean;
+  mnemonicPath?: string;
+  showPrivate?: boolean;
 }
 
 export interface IGetMnemonic {
   relativePath: string;
-  password: string;
+  password?: string;
 }
 
+//* Deployments
+// Deploy with option to deploy upgradeable
 export interface IDeploy extends ISignerInformation {
   upgradeable: boolean;
   contractName: ContractName;
@@ -42,14 +43,8 @@ export interface IDeploy extends ISignerInformation {
   tag?: string;
 }
 
-export interface IUpgrade extends ISignerInformation {
-  contractName: ContractName;
-  proxy: string;
-  proxyAdmin?: string;
-  contractArgs: any;
-  initialize?: boolean;
-  tag?: string;
-  noCompile: boolean;
+export interface IUpgrade extends Omit<IDeploy, "upgradeable"> {
+  proxy?: string;
 }
 
 export interface ICallContract extends ISignerInformation {
@@ -58,6 +53,10 @@ export interface ICallContract extends ISignerInformation {
   functionName: string;
   functionArgs: any;
   artifactPath: string;
+}
+
+export interface ISignTransaction extends ISignerInformation {
+  unsignedTx: TransactionRequest;
 }
 
 export interface IGetLogic {

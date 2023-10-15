@@ -4,7 +4,7 @@ pragma solidity >=0.8.2 <0.9.0;
 import "./interfaces/IStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Storage is IStorage, Ownable {
+contract Storage is IStorage, Ownable(msg.sender) {
   uint256 number;
 
   constructor(uint256 initialValue) {
@@ -21,7 +21,7 @@ contract Storage is IStorage, Ownable {
   }
 
   function payMe() public payable {
-    (bool success, ) = payable(owner()).call{ value: msg.value }("");
+    (bool success, ) = payable(owner()).call{value: msg.value}("");
     require(success, "Failed to send money");
     emit ThankYou(owner(), _msgSender(), "Thanks!!");
   }
