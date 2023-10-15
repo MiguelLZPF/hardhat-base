@@ -32,6 +32,10 @@ export type { TransparentUpgradeableProxy } from "./@openzeppelin/contracts/prox
 export { TransparentUpgradeableProxy__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy__factory";
 export type { Address } from "./@openzeppelin/contracts/utils/Address";
 export { Address__factory } from "./factories/@openzeppelin/contracts/utils/Address__factory";
+export type { _externals } from "./contracts/_external.sol/_externals";
+export { _externals__factory } from "./factories/contracts/_external.sol/_externals__factory";
+export type { TUP } from "./contracts/_external.sol/TUP";
+export { TUP__factory } from "./factories/contracts/_external.sol/TUP__factory";
 export type { IStorage } from "./contracts/interfaces/IStorage";
 export { IStorage__factory } from "./factories/contracts/interfaces/IStorage__factory";
 export type { Storage } from "./contracts/Storage";

@@ -22,13 +22,27 @@ export default class CustomContract<C extends BaseContract> {
   //* Properties
   contract: C;
   address: string;
+  runner: ContractRunner;
   //* Contructor
   constructor(address: string, abi: Interface | InterfaceAbi, signer: Signer);
-  constructor(address: string, abi: Interface | InterfaceAbi, provider: Provider);
-  constructor(address: string, abi: Interface | InterfaceAbi, runner: ContractRunner);
-  constructor(address: string, abi: Interface | InterfaceAbi, runner: ContractRunner) {
+  constructor(
+    address: string,
+    abi: Interface | InterfaceAbi,
+    provider: Provider,
+  );
+  constructor(
+    address: string,
+    abi: Interface | InterfaceAbi,
+    runner: ContractRunner,
+  );
+  constructor(
+    address: string,
+    abi: Interface | InterfaceAbi,
+    runner: ContractRunner,
+  ) {
     this._mustBeAddress(address);
-    this.contract = new Contract(address, abi, runner) as unknown as C;
+    this.runner = runner;
+    this.contract = new Contract(address, abi, this.runner) as unknown as C;
     this.address = address;
   }
   //* Static methods
@@ -40,7 +54,7 @@ export default class CustomContract<C extends BaseContract> {
     bytecode: BytesLike | { object: string },
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
-    overrides?: Overrides
+    overrides?: Overrides,
   ): Promise<ICCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
@@ -49,7 +63,7 @@ export default class CustomContract<C extends BaseContract> {
     factory: F,
     signer?: Signer,
     args?: ContractMethodArgs<any[]>,
-    overrides?: Overrides
+    overrides?: Overrides,
   ): Promise<ICCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
@@ -59,16 +73,18 @@ export default class CustomContract<C extends BaseContract> {
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
-    overrides?: Overrides
+    overrides?: Overrides,
   ): Promise<ICCDeployResult<C>> {
-    let contract: BaseContract & { deploymentTransaction(): ContractTransactionResponse } & Omit<
-        BaseContract,
-        keyof BaseContract
-      >;
+    let contract: BaseContract & {
+      deploymentTransaction(): ContractTransactionResponse;
+    } & Omit<BaseContract, keyof BaseContract>;
     if (factoryOrAbi instanceof ContractFactory) {
       const args = signerOrArgs as ContractMethodArgs<any[]>;
+      overrides = argsOrOverrides as Overrides;
       contract = bytecodeOrSigner
-        ? await factoryOrAbi.connect(bytecodeOrSigner as Signer).deploy(...args, overrides)
+        ? await factoryOrAbi
+            .connect(bytecodeOrSigner as Signer)
+            .deploy(...args, overrides)
         : await factoryOrAbi.deploy(...args, overrides);
     } else {
       const args = argsOrOverrides as ContractMethodArgs<any[]>;
@@ -76,19 +92,22 @@ export default class CustomContract<C extends BaseContract> {
         new ContractFactory(
           factoryOrAbi as Interface | InterfaceAbi,
           bytecodeOrSigner as BytesLike | { object: string },
-          signerOrArgs as Signer
+          signerOrArgs as Signer,
         ) as F
       ).deploy(...args, overrides);
     }
     const receipt = await contract.deploymentTransaction()?.wait();
     if (!receipt) {
-      throw new Error(`❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`);
+      throw new Error(
+        `❌  ⛓️  Bad deployment receipt. Receipt undefined after deployment`,
+      );
     }
     return {
       contract: new CustomContract<C>(
         await contract.getAddress(),
         contract.interface,
-        contract.runner as Signer
+        // must be Signer to be able to deploy
+        contract.runner as Signer,
       ),
       receipt: receipt,
     };
@@ -101,6 +120,7 @@ export default class CustomContract<C extends BaseContract> {
     this.address = newAddress;
   }
   connect(runner: ContractRunner) {
+    this.runner = runner;
     this.contract = this.contract.connect(runner) as typeof this.contract;
     return this;
   }
@@ -109,7 +129,7 @@ export default class CustomContract<C extends BaseContract> {
   protected _checkSigner() {
     if (!this.contract.runner || !(this.contract.runner as Signer)) {
       throw new Error(
-        `❌  🖊️  Cannot write transactions without a valid signer. Use connect() method.`
+        `❌  🖊️  Cannot write transactions without a valid signer. Use connect() method.`,
       );
     }
   }
@@ -122,7 +142,9 @@ export default class CustomContract<C extends BaseContract> {
       }
     } else if ((addresses.length = 1)) {
       if (!isAddress(addresses[0])) {
-        throw new Error(`❌  ⬇️  Bad input address is not a valid address: ${addresses[0]}`);
+        throw new Error(
+          `❌  ⬇️  Bad input address is not a valid address: ${addresses[0]}`,
+        );
       }
     } // else do nothing
   }
@@ -136,9 +158,12 @@ export default class CustomContract<C extends BaseContract> {
       let tempTransaction: TransactionResponse | null | undefined;
       for await (const event of events) {
         tempTransaction = (await this.contract.runner?.provider?.getTransaction(
-          event.transactionHash
+          event.transactionHash,
         ))!;
-        if (tempTransaction.from === (await (this.contract.runner as Signer).getAddress())) {
+        if (
+          tempTransaction.from ===
+          (await (this.contract.runner as Signer).getAddress())
+        ) {
           found = true;
           events = [event];
           break;

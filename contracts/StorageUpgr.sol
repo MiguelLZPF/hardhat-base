@@ -15,7 +15,7 @@ contract StorageUpgr is Initializable, IStorage, OwnableUpgradeable {
 
   function initialize(uint256 initialValue) external initializer {
     number = initialValue;
-    __Ownable_init_unchained();
+    __Ownable_init_unchained(_msgSender());
   }
 
   function store(uint256 num) public {
@@ -28,7 +28,7 @@ contract StorageUpgr is Initializable, IStorage, OwnableUpgradeable {
   }
 
   function payMe() public payable {
-    (bool success, ) = payable(owner()).call{ value: msg.value }("");
+    (bool success, ) = payable(owner()).call{value: msg.value}("");
     require(success, "Failed to send money");
     emit ThankYou(owner(), _msgSender(), "Thanks!!");
   }

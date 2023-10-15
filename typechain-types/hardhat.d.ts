@@ -66,6 +66,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Address__factory>;
     getContractFactory(
+      name: "_externals",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts._externals__factory>;
+    getContractFactory(
+      name: "TUP",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TUP__factory>;
+    getContractFactory(
       name: "IStorage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IStorage__factory>;
@@ -144,6 +152,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Address>;
     getContractAt(
+      name: "_externals",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts._externals>;
+    getContractAt(
+      name: "TUP",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TUP>;
+    getContractAt(
       name: "IStorage",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -212,6 +230,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Address>;
     deployContract(
+      name: "_externals",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts._externals>;
+    deployContract(
+      name: "TUP",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TUP>;
+    deployContract(
       name: "IStorage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IStorage>;
@@ -289,6 +315,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Address>;
+    deployContract(
+      name: "_externals",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts._externals>;
+    deployContract(
+      name: "TUP",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TUP>;
     deployContract(
       name: "IStorage",
       args: any[],

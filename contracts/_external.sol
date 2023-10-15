@@ -9,6 +9,26 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 /**
  * @dev Only used to compile external (imports) contracts
  */
-contract _externals {
+abstract contract _externals is ProxyAdmin {
 
+}
+
+contract TUP is TransparentUpgradeableProxy {
+  constructor(
+    address logic,
+    address initialOwner,
+    bytes memory data
+  ) TransparentUpgradeableProxy(logic, initialOwner, data) {}
+
+  function getProxyAdmin() public returns (address) {
+    return _proxyAdmin();
+  }
+
+  function getImplementation() public view returns (address) {
+    return _implementation();
+  }
+
+  receive() external payable {
+    // custom function code
+  }
 }

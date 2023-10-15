@@ -18,13 +18,14 @@ import CustomContract, { ICCDeployResult } from "./CustomContract";
 import {
   ProxyAdmin,
   ProxyAdmin__factory,
-  TransparentUpgradeableProxy as TUP,
-  TransparentUpgradeableProxy__factory as TUP__factory,
-  TransparentUpgradeableProxy,
+  TUP,
+  TUP__factory,
   TransparentUpgradeableProxy__factory,
 } from "typechain-types";
 
-export default class CustomUpgrContract<C extends BaseContract> extends CustomContract<C> {
+export default class CustomUpgrContract<
+  C extends BaseContract,
+> extends CustomContract<C> {
   //* Properties
   proxy: TUP;
   logic: C;
@@ -38,35 +39,43 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     abi: Interface | InterfaceAbi,
     signer: Signer,
     logic: string,
-    proxyAdmin?: string
+    proxyAdmin?: string,
   );
   constructor(
     proxy: string,
     abi: Interface | InterfaceAbi,
     provider: Provider,
     logic: string,
-    proxyAdmin?: string
+    proxyAdmin?: string,
   );
   constructor(
     proxy: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
     logic: string,
-    proxyAdmin?: string
+    proxyAdmin?: string,
   );
   constructor(
     proxy: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
     logic: string,
-    proxyAdmin?: string
+    proxyAdmin?: string,
   ) {
     super(proxy, abi, runner);
-    this._mustBeAddress(logic, proxyAdmin);
-    this.proxy = new Contract(proxy, TUP__factory.abi, runner) as unknown as TUP;
+    this._mustBeAddress(logic);
+    this.proxy = new Contract(
+      proxy,
+      TUP__factory.abi,
+      runner,
+    ) as unknown as TUP;
     this.logic = new Contract(logic, abi, runner) as unknown as C;
     this.proxyAdmin = proxyAdmin
-      ? (new Contract(proxyAdmin, TUP__factory.abi, runner) as unknown as ProxyAdmin)
+      ? (new Contract(
+          proxyAdmin,
+          ProxyAdmin__factory.abi,
+          runner,
+        ) as unknown as ProxyAdmin)
       : undefined;
     this.logicAddress = logic;
     proxyAdmin ? this._checkProxyAdmin() : undefined;
@@ -82,7 +91,7 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-    initialize?: boolean
+    initialize?: boolean,
   ): Promise<ICCUpgrDeployResult<C>>;
   static async deployUpgradeable<
     F extends ContractFactory = ContractFactory,
@@ -93,7 +102,7 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     signer?: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-    initialize?: boolean
+    initialize?: boolean,
   ): Promise<ICCUpgrDeployResult<C>>;
   static async deployUpgradeable<
     F extends ContractFactory = ContractFactory,
@@ -105,7 +114,7 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
     overridesOrInitialize?: Overrides | boolean,
-    initialize = false
+    initialize = false,
   ): Promise<ICCUpgrDeployResult<C>> {
     let factory: F | undefined;
     let abi: Interface | InterfaceAbi | undefined;
@@ -140,7 +149,10 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
       args = signerOrArgs as ContractMethodArgs<any[]>;
     }
     // Fifth parameter
-    if (argsOrOverrides && Array.isArray(argsOrOverrides as ContractMethodArgs<any[]>)) {
+    if (
+      argsOrOverrides &&
+      Array.isArray(argsOrOverrides as ContractMethodArgs<any[]>)
+    ) {
       args = argsOrOverrides as ContractMethodArgs<any[]>;
     } else if (argsOrOverrides) {
       overrides = argsOrOverrides as Overrides;
@@ -153,20 +165,19 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     }
     // -- Check Signer before do anything else
     if (!signer && (!factory || !factory.runner)) {
-      throw new Error(`❌  No valid Signer provided direcly or through the Factory.`);
+      throw new Error(
+        `❌  No valid Signer provided direcly or through the Factory.`,
+      );
     }
     signer = signer ? signer : (factory?.runner as Signer);
     //* Implementation
-    // Proxy Admin
-    const proxyAdmin = ProxyAdmin__factory.connect(proxyAdminAddress);
-
     //* Actual contracts
     // Deploy main | logic contract
     let deployResult: Promise<ICCDeployResult<C>>;
     if (factory) {
-      deployResult = super.deploy<F, C>(factory, signer, args, overrides);
+      deployResult = super.deploy<F, C>(factory, signer, [], overrides);
     } else if (abi && bytecode && signer) {
-      deployResult = super.deploy<F, C>(abi, bytecode, signer, args, overrides);
+      deployResult = super.deploy<F, C>(abi, bytecode, signer, [], overrides);
     } else {
       throw new Error(`❌  ⬇️  Invalid paramaters for upgradeable deployment`);
     }
@@ -175,35 +186,38 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     if (!logic || !logic.address) {
       throw new Error("❌  ⛓️  Logic | Implementation not deployed properly");
     }
-    const logicReceipt = await logic.contract.deploymentTransaction()?.wait();
+    const logicReceipt = (await deployResult).receipt;
     if (!logicReceipt) {
-      throw new Error(`❌  ⛓️  Bad logic deployment receipt. Receipt undefined after deployment`);
+      throw new Error(
+        `❌  ⛓️  Bad logic deployment receipt. Receipt undefined after deployment`,
+      );
     }
     // Encode function params for TUP
     let initData: string;
     if (initialize && args && args.length > 0) {
-      initData = logic.contract.interface.encodeFunctionData("initialize", [...args]);
+      initData = logic.contract.interface.encodeFunctionData("initialize", [
+        ...args,
+      ]);
     } else {
       initData = logic.contract.interface._encodeParams([], []);
     }
     // Deploy TUP - Transparent Upgradeable Proxy
-    const tupDeployResult = await super.deploy<
-      TransparentUpgradeableProxy__factory,
-      TransparentUpgradeableProxy
-    >(
-      new TransparentUpgradeableProxy__factory(signer),
+    const tupDeployResult = await super.deploy<TUP__factory, TUP>(
+      new TUP__factory(signer),
       signer,
       [logic.address, proxyAdminAddress, initData],
-      overrides
+      overrides,
     );
     // Check deployment result
     const tuProxy = tupDeployResult.contract;
     if (!tuProxy || !tuProxy.address) {
       throw new Error("❌  ⛓️  Proxy | Storage not deployed properly");
     }
-    const tupReceipt = await tuProxy.contract.deploymentTransaction()?.wait();
+    const tupReceipt = tupDeployResult.receipt;
     if (!tupReceipt) {
-      throw new Error(`❌  ⛓️  Bad TUP deployment receipt. Receipt undefined after deployment`);
+      throw new Error(
+        `❌  ⛓️  Bad TUP deployment receipt. Receipt undefined after deployment`,
+      );
     }
     //* Result
     // Create Custom Upgradeable Contract Instance
@@ -213,7 +227,7 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
         logic.contract.interface,
         signer,
         logic.address,
-        proxyAdminAddress
+        proxyAdminAddress,
       ),
       receipt: tupReceipt,
     };
@@ -223,49 +237,61 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
     newBytecode: BytesLike | { object: string },
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-    initialize = false
+    initialize = false,
   ): Promise<ICCUpgrDeployResult<C>> {
     this._checkSigner();
     this._requiredProxyAdmin();
-    const previousLogicFromAdmin = this.proxyAdmin!.getProxyImplementation(this.proxyAddress);
+    const previousLogicFromAdmin = this.proxy.getImplementation();
     // Deploy NEW main | logic contract
     const deployResult = await CustomContract.deploy(
       this.logic.interface,
       newBytecode,
       this.proxy.runner as Signer,
       args,
-      overrides
+      overrides,
     );
     // Check deployment result
     const newLogic = deployResult.contract;
     if (!newLogic || !newLogic.address) {
       throw new Error("❌  ⛓️  Logic | Implementation not deployed properly");
     }
-    const logicReceipt = await newLogic.contract.deploymentTransaction()?.wait();
+    const logicReceipt = await newLogic.contract
+      .deploymentTransaction()
+      ?.wait();
     if (!logicReceipt) {
-      throw new Error(`❌  ⛓️  Bad logic deployment receipt. Receipt undefined after deployment`);
+      throw new Error(
+        `❌  ⛓️  Bad logic deployment receipt. Receipt undefined after deployment`,
+      );
     }
     // Encode function params for TUP
     let upgrReceipt: ContractTransactionReceipt | null;
+    let initData: string;
     if (initialize && args && args.length > 0) {
-      const initData = newLogic.contract.interface.encodeFunctionData("initialize", [...args]);
-      // Upgrade contract to use new logic
-      upgrReceipt = await (
-        await this.proxyAdmin!.upgradeAndCall(this.proxyAddress, newLogic.address, initData)
-      ).wait();
+      initData = newLogic.contract.interface.encodeFunctionData("initialize", [
+        ...args,
+      ]);
     } else {
-      // Upgrade contract to use new logic
-      upgrReceipt = await (
-        await this.proxyAdmin!.upgrade(this.proxyAddress, newLogic.address)
-      ).wait();
+      initData = newLogic.contract.interface._encodeParams([], []);
     }
+    // Upgrade contract to use new logic
+    upgrReceipt = await (
+      await this.proxyAdmin!.upgradeAndCall(
+        this.proxyAddress,
+        newLogic.address,
+        initData,
+      )
+    ).wait();
     // Check if upgrade done correctly
     if (!upgrReceipt) {
-      throw new Error("❌  ⛓️  Transaction execution failed. Undefined Receipt");
+      throw new Error(
+        "❌  ⛓️  Transaction execution failed. Undefined Receipt",
+      );
     }
-    const newLogicFromAdmin = await this.proxyAdmin!.getProxyImplementation(this.proxyAddress);
+    const newLogicFromAdmin = await this.proxy.getImplementation();
     if (newLogicFromAdmin == (await previousLogicFromAdmin)) {
-      throw new Error("❌  ⛓️  Upgrade failed. Previous address and new one are the same");
+      throw new Error(
+        "❌  ⛓️  Upgrade failed. Previous address and new one are the same",
+      );
     }
     if (newLogicFromAdmin != newLogic.address) {
       throw new Error("❌  ⛓️  Upgrade failed. Logic addresess does not match");
@@ -278,7 +304,7 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
         newLogic.contract.interface,
         this.proxy.runner as Signer,
         newLogic.address,
-        this.proxyAdminAddress
+        this.proxyAdminAddress,
       ),
       receipt: logicReceipt,
     };
@@ -290,12 +316,12 @@ export default class CustomUpgrContract<C extends BaseContract> extends CustomCo
       const proxyAdminCode = (await this.proxyAdmin!.getDeployedCode())!;
       if (keccak256(proxyAdminCode) != PROXY_ADMIN_CODEHASH) {
         throw new Error(
-          `❌  ProxyAdmin(at address: ${this.proxyAdminAddress}) is not a ProxyAdmin Contract`
+          `❌  ProxyAdmin(at address: ${this.proxyAdminAddress}) is not a ProxyAdmin Contract`,
         );
       }
     } catch (error) {
       throw new Error(
-        `❌  ProxyAdmin(at address: ${this.proxyAdminAddress}) is not a ProxyAdmin Contract`
+        `❌  ProxyAdmin(at address: ${this.proxyAdminAddress}) is not a ProxyAdmin Contract`,
       );
     }
   }

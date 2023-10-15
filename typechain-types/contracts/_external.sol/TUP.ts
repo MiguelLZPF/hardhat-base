@@ -3,7 +3,9 @@
 /* eslint-disable */
 import type {
   BaseContract,
+  BytesLike,
   FunctionFragment,
+  Result,
   Interface,
   EventFragment,
   AddressLike,
@@ -17,12 +19,33 @@ import type {
   TypedEventLog,
   TypedLogDescription,
   TypedListener,
-} from "../../../../common";
+  TypedContractMethod,
+} from "../../common";
 
-export interface ERC1967UpgradeInterface extends Interface {
-  getEvent(
-    nameOrSignatureOrTopic: "AdminChanged" | "BeaconUpgraded" | "Upgraded"
-  ): EventFragment;
+export interface TUPInterface extends Interface {
+  getFunction(
+    nameOrSignature: "getImplementation" | "getProxyAdmin"
+  ): FunctionFragment;
+
+  getEvent(nameOrSignatureOrTopic: "AdminChanged" | "Upgraded"): EventFragment;
+
+  encodeFunctionData(
+    functionFragment: "getImplementation",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getProxyAdmin",
+    values?: undefined
+  ): string;
+
+  decodeFunctionResult(
+    functionFragment: "getImplementation",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getProxyAdmin",
+    data: BytesLike
+  ): Result;
 }
 
 export namespace AdminChangedEvent {
@@ -31,18 +54,6 @@ export namespace AdminChangedEvent {
   export interface OutputObject {
     previousAdmin: string;
     newAdmin: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace BeaconUpgradedEvent {
-  export type InputTuple = [beacon: AddressLike];
-  export type OutputTuple = [beacon: string];
-  export interface OutputObject {
-    beacon: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -62,11 +73,11 @@ export namespace UpgradedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface ERC1967Upgrade extends BaseContract {
-  connect(runner?: ContractRunner | null): ERC1967Upgrade;
+export interface TUP extends BaseContract {
+  connect(runner?: ContractRunner | null): TUP;
   waitForDeployment(): Promise<this>;
 
-  interface: ERC1967UpgradeInterface;
+  interface: TUPInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -105,9 +116,20 @@ export interface ERC1967Upgrade extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  getImplementation: TypedContractMethod<[], [string], "view">;
+
+  getProxyAdmin: TypedContractMethod<[], [string], "nonpayable">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
+
+  getFunction(
+    nameOrSignature: "getImplementation"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "getProxyAdmin"
+  ): TypedContractMethod<[], [string], "nonpayable">;
 
   getEvent(
     key: "AdminChanged"
@@ -115,13 +137,6 @@ export interface ERC1967Upgrade extends BaseContract {
     AdminChangedEvent.InputTuple,
     AdminChangedEvent.OutputTuple,
     AdminChangedEvent.OutputObject
-  >;
-  getEvent(
-    key: "BeaconUpgraded"
-  ): TypedContractEvent<
-    BeaconUpgradedEvent.InputTuple,
-    BeaconUpgradedEvent.OutputTuple,
-    BeaconUpgradedEvent.OutputObject
   >;
   getEvent(
     key: "Upgraded"
@@ -141,17 +156,6 @@ export interface ERC1967Upgrade extends BaseContract {
       AdminChangedEvent.InputTuple,
       AdminChangedEvent.OutputTuple,
       AdminChangedEvent.OutputObject
-    >;
-
-    "BeaconUpgraded(address)": TypedContractEvent<
-      BeaconUpgradedEvent.InputTuple,
-      BeaconUpgradedEvent.OutputTuple,
-      BeaconUpgradedEvent.OutputObject
-    >;
-    BeaconUpgraded: TypedContractEvent<
-      BeaconUpgradedEvent.InputTuple,
-      BeaconUpgradedEvent.OutputTuple,
-      BeaconUpgradedEvent.OutputObject
     >;
 
     "Upgraded(address)": TypedContractEvent<

@@ -41,15 +41,13 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
       overrides,
     );
     return {
-      contract: new Storage(
-        deployResult.contract.address,
-        deployResult.contract.contract.runner as Signer,
-      ),
+      contract: new Storage(deployResult.contract.address, signer),
       receipt: deployResult.receipt,
     };
   }
 
   //* Custom contract functions
+  // Ownable
   async transferOwnership(
     newOwner: string,
     overrides: Overrides = GAS_OPT.max,
@@ -88,7 +86,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
       event: events[0],
     };
   }
-  // Ownable
+
   async owner(): Promise<string | undefined> {
     const owner = await this.contract.owner();
     if (isAddress(owner)) {
