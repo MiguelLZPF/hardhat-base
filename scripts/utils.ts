@@ -1,4 +1,4 @@
-import { BLOCKCHAIN, CONTRACTS } from "configuration";
+import { BLOCKCHAIN } from "configuration";
 import { ContractName, INetwork, NetworkName } from "models/Configuration";
 import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
 import {
@@ -16,8 +16,6 @@ import util from "util";
 import { getContractDeployment } from "./deploy";
 import { IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
 
-export const PROXY_ADMIN_CODEHASH = keccak256(getArtifact("ProxyAdmin").deployedBytecode);
-
 // Global HRE, Ethers Provider and network parameters
 export let ghre: HardhatRuntimeEnvironment;
 export let gEthers: HardhatRuntimeEnvironment["ethers"];
@@ -33,7 +31,9 @@ export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
   gEthers = hre.ethers;
   gProvider = hre.ethers.provider;
   // get the current network parameters based on chainId
-  gNetwork = BLOCKCHAIN.networks.get(chainIdToNetwork.get((await gProvider.getNetwork()).chainId))!;
+  gNetwork = BLOCKCHAIN.networks.get(
+    chainIdToNetwork.get((await gProvider.getNetwork()).chainId),
+  )!;
   return { gProvider, gNetwork };
 };
 
@@ -44,49 +44,6 @@ export const chainIdToNetwork = new Map<BigInt | undefined, NetworkName>([
   [BLOCKCHAIN.networks.get("mainTest")!.chainId, "mainTest"],
 ]);
 
-export function getArtifact(contractName?: ContractName, path?: string): Artifact {
-  path = path ? path : CONTRACTS.get(contractName!)!.artifact;
-  if (!path) {
-    throw new Error(`❌ Artifact path not provided or found: ${path}`);
-  }
-  return JSON.parse(readFileSync(path, "utf-8")) as Artifact;
-}
-
-/**
- * Create a new instance of a deployed contract
- * @param contractName name that identifies a contract in the context of this project
- * @param signer (optional) [undefined] signer to be used to sign TXs by default
- * @param contractAddr (optional) [Contracts.<contractName>.<network>.address] address of the deployed contract
- * @returns instance of the contract attached to contractAddr and connected to signer or provider
- */
-export const getContractInstance = async <T = Contract>(
-  contractName: ContractName,
-  signerOrProvider: Signer | Provider = gProvider,
-  contractOrAddress?: string | Contract
-): Promise<T> => {
-  // get contract information from deployments file (async)
-  const deployment = getContractDeployment(contractName);
-  // get artifact from config file
-  const artifact = getArtifact(contractName);
-  // get the contract's addres from 1. parameter, 2. config file or 3. deployments.json
-  const finalAddress =
-    typeof contractOrAddress == "string"
-      ? contractOrAddress
-      : (await contractOrAddress?.getAddress()) ||
-        CONTRACTS.get(contractName)?.address.get(gNetwork.name) ||
-        ((await deployment) as IRegularDeployment)?.address ||
-        ((await deployment) as IUpgradeDeployment).logic;
-  // Check if valid address was found
-  if (!finalAddress) {
-    throw new Error(
-      `Cannot find contract ${contractName} address in parameter | config file | deployments file`
-    );
-  }
-  // create and return contract instance
-  const contract = new Contract(finalAddress, artifact.abi, signerOrProvider);
-  return contract as T;
-};
-
 /**
  * Gets the deployed contract timestamp
  * @param contract contract instance to use
@@ -96,12 +53,19 @@ export const getContractInstance = async <T = Contract>(
  */
 export const getContractTimestamp = async (
   contract: BaseContract | Contract,
-  deployTxHash?: string
+  deployTxHash?: string,
 ) => {
-  let provider = contract.runner?.provider ? contract.runner.provider : gProvider;
+  let provider = contract.runner?.provider
+    ? contract.runner.provider
+    : gProvider;
   let receipt: TransactionReceipt | null;
-  if (contract.deploymentTransaction() && contract.deploymentTransaction()!.hash) {
-    receipt = await provider.getTransactionReceipt(contract.deploymentTransaction()!.hash);
+  if (
+    contract.deploymentTransaction() &&
+    contract.deploymentTransaction()!.hash
+  ) {
+    receipt = await provider.getTransactionReceipt(
+      contract.deploymentTransaction()!.hash,
+    );
   } else if (deployTxHash && isAddress(deployTxHash)) {
     receipt = await provider.getTransactionReceipt(deployTxHash);
   } else {
@@ -109,7 +73,8 @@ export const getContractTimestamp = async (
     return undefined;
   }
   if (receipt && receipt.blockHash) {
-    const timestampSeconds = (await provider.getBlock(receipt.blockHash))!.timestamp;
+    const timestampSeconds = (await provider.getBlock(receipt.blockHash))!
+      .timestamp;
     return new Date(timestampSeconds * 1000).toISOString();
   } else {
     console.error("❌  ⛓️  Cannot get Tx Block Hash");
@@ -149,7 +114,10 @@ export const checkDirectories = (reqDirectories: string[]) => {
  * @param provider (optional) [gProvider] the provider to use
  * @returns the timestamp in seconds
  */
-export const getTimeStamp = async (block?: BlockTag, provider: Provider = gProvider) => {
+export const getTimeStamp = async (
+  block?: BlockTag,
+  provider: Provider = gProvider,
+) => {
   return (await provider.getBlock(block || "latest"))?.timestamp;
 };
 

@@ -54,10 +54,6 @@ export type { ERC165 } from "./@openzeppelin/contracts/utils/introspection/ERC16
 export { ERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/ERC165__factory";
 export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC165";
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
-export type { _externals } from "./contracts/_external.sol/_externals";
-export { _externals__factory } from "./factories/contracts/_external.sol/_externals__factory";
-export type { TUP } from "./contracts/_external.sol/TUP";
-export { TUP__factory } from "./factories/contracts/_external.sol/TUP__factory";
 export type { IPayableOwner } from "./contracts/interfaces/IPayableOwner";
 export { IPayableOwner__factory } from "./factories/contracts/interfaces/IPayableOwner__factory";
 export type { IStorage } from "./contracts/interfaces/IStorage";

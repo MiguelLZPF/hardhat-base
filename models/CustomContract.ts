@@ -1,11 +1,9 @@
 import {
-  Provider,
   Signer,
   Interface,
   InterfaceAbi,
   ContractFactory,
   BaseContract,
-  Contract,
   ContractRunner,
   ContractTransactionResponse,
   ContractTransactionReceipt,
@@ -14,41 +12,52 @@ import {
   BytesLike,
   isAddress,
   Overrides,
+  Addressable,
   EventLog,
   Log,
 } from "ethers";
 
-export default class CustomContract<C extends BaseContract> {
+export default class CustomContract<C extends CBaseContract> {
   //* Properties
   contract: C;
-  address: string;
-  runner: ContractRunner;
+  address: string | Addressable;
   //* Contructor
-  constructor(address: string, abi: Interface | InterfaceAbi, signer: Signer);
-  constructor(
-    address: string,
-    abi: Interface | InterfaceAbi,
-    provider: Provider,
-  );
+  constructor(contract: C);
   constructor(
     address: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
   );
   constructor(
-    address: string,
-    abi: Interface | InterfaceAbi,
-    runner: ContractRunner,
+    contractOrAddress: string | C,
+    abi?: Interface | InterfaceAbi,
+    runner?: ContractRunner,
   ) {
-    this._mustBeAddress(address);
-    this.runner = runner;
-    this.contract = new Contract(address, abi, this.runner) as unknown as C;
-    this.address = address;
+    //* Check parameters
+    let address: string | undefined;
+    let contract: C | undefined;
+    // First parameter
+    if (typeof contractOrAddress === "string") {
+      address = contractOrAddress as string;
+    } else {
+      contract = contractOrAddress as C;
+    }
+    //* Implementation
+    if (address) {
+      this._mustBeAddress(address);
+      this.contract = new BaseContract(address, abi!, runner!) as C;
+    } else if (contract) {
+      this.contract = contract;
+    } else {
+      throw new Error("");
+    }
+    this.address = this.target;
   }
+
   //* Static methods
   static async deploy<
     F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
+    C extends CBaseContract = CBaseContract,
   >(
     abi: Interface | InterfaceAbi,
     bytecode: BytesLike | { object: string },
@@ -58,7 +67,7 @@ export default class CustomContract<C extends BaseContract> {
   ): Promise<ICCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
+    C extends CBaseContract = CBaseContract,
   >(
     factory: F,
     signer?: Signer,
@@ -67,7 +76,7 @@ export default class CustomContract<C extends BaseContract> {
   ): Promise<ICCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
+    C extends CBaseContract = CBaseContract,
   >(
     factoryOrAbi: F | Interface | InterfaceAbi,
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
@@ -75,9 +84,7 @@ export default class CustomContract<C extends BaseContract> {
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
     overrides?: Overrides,
   ): Promise<ICCDeployResult<C>> {
-    let contract: BaseContract & {
-      deploymentTransaction(): ContractTransactionResponse;
-    } & Omit<BaseContract, keyof BaseContract>;
+    let contract: CBaseContract;
     if (factoryOrAbi instanceof ContractFactory) {
       const args = signerOrArgs as ContractMethodArgs<any[]>;
       overrides = argsOrOverrides as Overrides;
@@ -104,25 +111,42 @@ export default class CustomContract<C extends BaseContract> {
     }
     return {
       contract: new CustomContract<C>(
-        await contract.getAddress(),
-        contract.interface,
-        // must be Signer to be able to deploy
-        contract.runner as Signer,
+        (await contract.waitForDeployment()) as C,
       ),
       receipt: receipt,
     };
   }
 
   //* Contract base functions
+  // Getters
+  get runner() {
+    return this.contract.runner;
+  }
+  get interface() {
+    return this.contract.interface;
+  }
+  get target() {
+    return this.contract.target;
+  }
+  // Functions
   attach(newAddress: string) {
     this._mustBeAddress(newAddress);
-    this.contract = this.contract.attach(newAddress) as typeof this.contract;
+    this.contract = this.contract.attach(newAddress) as C;
     this.address = newAddress;
   }
   connect(runner: ContractRunner) {
-    this.runner = runner;
-    this.contract = this.contract.connect(runner) as typeof this.contract;
+    this.contract = this.contract.connect(runner) as C;
     return this;
+  }
+  async getDeployedCode() {
+    return this.contract.getDeployedCode();
+  }
+  async waitForDeployment() {
+    return this.contract.waitForDeployment();
+  }
+  async getAddress() {
+    this.address = await this.contract.getAddress();
+    return this.address;
   }
 
   //* Protected generic functions
@@ -177,7 +201,13 @@ export default class CustomContract<C extends BaseContract> {
   }
 }
 
-export interface ICCDeployResult<C extends BaseContract = BaseContract> {
+export type CBaseContract =
+  | (BaseContract & {
+      deploymentTransaction(): ContractTransactionResponse;
+    } & Omit<BaseContract, keyof BaseContract>)
+  | BaseContract;
+
+export interface ICCDeployResult<C extends CBaseContract = CBaseContract> {
   contract: CustomContract<C>;
   receipt: ContractTransactionReceipt;
 }

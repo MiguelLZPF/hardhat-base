@@ -2,18 +2,10 @@ export type PromiseOrValue<T> = Promise<T> | T;
 export type Hardfork = "london" | "berlin" | "byzantium";
 export type NetworkProtocol = "http" | "https" | "ws";
 export type NetworkName = "hardhat" | "ganache" | "mainTest"; // you can add whatever Network name here
-// IA generated
-const CONTRACT_OZ_NAMES = ["ProxyAdmin", "TransparentUpgradeableProxy"] as const; // [0, 1]
-const CONTRACT_PROJECT_NAMES = ["Storage", "StorageUpgr"] as const; // [2, 3]
-export const CONTRACT_NAMES = [
-  ...CONTRACT_OZ_NAMES,
-  ...CONTRACT_PROJECT_NAMES,
-];
-type UnionFromTuple<T extends readonly any[]> = T[number];
-export type ContractName = UnionFromTuple<
-  | typeof CONTRACT_OZ_NAMES
-  | typeof CONTRACT_NAMES
->;
+
+// Project contract names allowed
+const CONTRACT_NAMES = ["Storage", "StorageUpgr"] as const;
+export type ContractName = typeof CONTRACT_NAMES;
 
 export interface INetwork {
   chainId: BigInt;
@@ -22,12 +14,4 @@ export interface INetwork {
   hostname: string;
   port: number;
   dbPath?: string;
-}
-
-export interface IContract {
-  name: ContractName;
-  abi?: any;
-  bytecode?: string;
-  artifact?: string;
-  address: Map<NetworkName, string | undefined>;
 }

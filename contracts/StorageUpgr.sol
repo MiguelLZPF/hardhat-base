@@ -51,5 +51,6 @@ contract StorageUpgr is
     emit ThankYou(getRoleMember(DEFAULT_ADMIN_ROLE, 0), _msgSender(), "Thanks!!");
   }
 
+  // UUPS
   function _authorizeUpgrade(address) internal override onlyRole(UPGRADE_ADMIN_ROLE) {}
 }

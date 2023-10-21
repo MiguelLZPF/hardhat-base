@@ -110,14 +110,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
-      name: "_externals",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts._externals__factory>;
-    getContractFactory(
-      name: "TUP",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.TUP__factory>;
-    getContractFactory(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IPayableOwner__factory>;
@@ -255,16 +247,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
-      name: "_externals",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts._externals>;
-    getContractAt(
-      name: "TUP",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.TUP>;
-    getContractAt(
       name: "IPayableOwner",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -381,14 +363,6 @@ declare module "hardhat/types/runtime" {
       name: "IERC165",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "_externals",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts._externals>;
-    deployContract(
-      name: "TUP",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TUP>;
     deployContract(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -526,16 +500,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
-    deployContract(
-      name: "_externals",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts._externals>;
-    deployContract(
-      name: "TUP",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.TUP>;
     deployContract(
       name: "IPayableOwner",
       args: any[],
