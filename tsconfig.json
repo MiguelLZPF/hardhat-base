@@ -9,8 +9,19 @@
     "skipLibCheck": true,
     "baseUrl": "./"
   },
+  "paths": {
+    //! Not working...
+    "@config": ["configuration"],
+    "@contracts": ["contracts"],
+    "@models": ["models"],
+    "@scripts": ["scripts"],
+    "@test": ["test"],
+    "@types": ["typechain-types"],
+    "@artifacts": ["artifacts"]
+  },
   "ts-node": {
     // Do not forget to `npm i -D tsconfig-paths`
     "require": ["tsconfig-paths/register"]
-  }
+  },
+  "types": ["bun-types"]
 }

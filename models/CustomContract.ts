@@ -1,4 +1,5 @@
 import {
+  Provider,
   Signer,
   Interface,
   InterfaceAbi,
@@ -24,7 +25,7 @@ export default class CustomContract<C extends CBaseContract> {
   //* Contructor
   constructor(contract: C);
   constructor(
-    address: string,
+    address: string | Addressable,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
   );
@@ -127,6 +128,15 @@ export default class CustomContract<C extends CBaseContract> {
   }
   get target() {
     return this.contract.target;
+  }
+  get provider() {
+    if ((this.contract.runner as Signer).signMessage) {
+      return (this.contract.runner as Signer).provider;
+    } else if (this.contract.runner as Provider) {
+      return this.contract.runner as Provider;
+    } else {
+      return null;
+    }
   }
   // Functions
   attach(newAddress: string) {

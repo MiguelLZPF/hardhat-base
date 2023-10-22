@@ -36,7 +36,7 @@ import {
   IUpgrDeployReturn,
   IUpgradeDeployment,
 } from "models/Deploy";
-import CustomWallet from "scripts/wallets";
+import CustomWallet from "models/Wallet";
 
 //* TASKS
 subtask("create-signer", "Creates new signer from given params")
