@@ -53,7 +53,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     overrides: Overrides = GAS_OPT.max,
   ) {
     // Check if valid address
-    this._mustBeAddress(newOwner);
+    this._checkAddress(newOwner);
     // Check if valid signer
     this._checkSigner();
     // Get signer's address

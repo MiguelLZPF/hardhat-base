@@ -45,24 +45,24 @@ export default class CustomContract<C extends CBaseContract> {
     }
     //* Implementation
     if (address) {
-      this._mustBeAddress(address);
+      this._checkAddress(address);
       this.contract = new BaseContract(address, abi!, runner!) as C;
     } else if (contract) {
       this.contract = contract;
     } else {
-      throw new Error("");
+      throw new Error(`❌  Constructor unknown error`);
     }
     this.address = this.target;
   }
 
   //* Static methods
+
   static async deploy<
     F extends ContractFactory = ContractFactory,
     C extends CBaseContract = CBaseContract,
   >(
-    abi: Interface | InterfaceAbi,
-    bytecode: BytesLike | { object: string },
-    signer: Signer,
+    factory: F,
+    signer?: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
   ): Promise<ICCDeployResult<C>>;
@@ -70,8 +70,9 @@ export default class CustomContract<C extends CBaseContract> {
     F extends ContractFactory = ContractFactory,
     C extends CBaseContract = CBaseContract,
   >(
-    factory: F,
-    signer?: Signer,
+    abi: Interface | InterfaceAbi,
+    bytecode: BytesLike | { object: string },
+    signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
   ): Promise<ICCDeployResult<C>>;
@@ -140,7 +141,7 @@ export default class CustomContract<C extends CBaseContract> {
   }
   // Functions
   attach(newAddress: string) {
-    this._mustBeAddress(newAddress);
+    this._checkAddress(newAddress);
     this.contract = this.contract.attach(newAddress) as C;
     this.address = newAddress;
   }
@@ -167,12 +168,12 @@ export default class CustomContract<C extends CBaseContract> {
       );
     }
   }
-  protected _mustBeAddress(...addresses: (string | undefined)[]) {
+  protected _checkAddress(...addresses: (string | Addressable | undefined)[]) {
     // remove undefined addresses
     addresses.filter((address) => address !== undefined);
     if (addresses.length > 1) {
       for (const address of addresses) {
-        this._mustBeAddress(address);
+        this._checkAddress(address);
       }
     } else if ((addresses.length = 1)) {
       if (!isAddress(addresses[0])) {
