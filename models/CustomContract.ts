@@ -124,6 +124,10 @@ export default class CustomContract<C extends CBaseContract> {
   get runner() {
     return this.contract.runner;
   }
+  get signer() {
+    this._checkSigner();
+    return this.runner as Signer;
+  }
   get interface() {
     return this.contract.interface;
   }

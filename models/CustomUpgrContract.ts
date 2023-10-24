@@ -204,81 +204,87 @@ export default class CustomUpgrContract<
       receipt: receipt,
     };
   }
+
   //* Contract base functions
-  async upgrade(
-    newBytecode: BytesLike | { object: string },
-    args?: ContractMethodArgs<any[]>,
+  async upgrade<F extends ContractFactory = ContractFactory>(
+    factory: F,
     overrides?: Overrides,
-    initialize = false,
+  ): Promise<ICCUpgrDeployResult<C>>;
+  async upgrade<F extends ContractFactory = ContractFactory>(
+    abi: Interface | InterfaceAbi,
+    bytecode: BytesLike | { object: string },
+    overrides?: Overrides,
+  ): Promise<ICCUpgrDeployResult<C>>;
+  async upgrade<F extends ContractFactory = ContractFactory>(
+    factoryOrAbi: F | Interface | InterfaceAbi,
+    overridesOrBytecode?: BytesLike | { object: string } | Overrides,
+    overrides?: Overrides,
   ): Promise<ICCUpgrDeployResult<C>> {
-    this._checkSigner();
-    this._requiredProxyAdmin();
-    const previousLogicFromAdmin = this.proxy.getImplementation();
-    // Deploy NEW main | logic contract
-    const deployResult = await CustomContract.deploy(
-      this.logic.interface,
-      newBytecode,
-      this.proxy.runner as Signer,
-      args,
-      overrides,
-    );
-    // Check deployment result
-    const newLogic = deployResult.contract;
-    if (!newLogic || !newLogic.address) {
-      throw new Error("❌  ⛓️  Logic | Implementation not deployed properly");
-    }
-    const logicReceipt = await newLogic.contract
-      .deploymentTransaction()
-      ?.wait();
-    if (!logicReceipt) {
-      throw new Error(
-        `❌  ⛓️  Bad logic deployment receipt. Receipt undefined after deployment`,
-      );
-    }
-    // Encode function params for TUP
-    let upgrReceipt: ContractTransactionReceipt | null;
-    let initData: string;
-    if (initialize && args && args.length > 0) {
-      initData = newLogic.contract.interface.encodeFunctionData("initialize", [
-        ...args,
-      ]);
+    let factory: F | undefined;
+    let abi: Interface | InterfaceAbi | undefined;
+    let bytecode: BytesLike | { object: string } | undefined;
+    //* Parse parameters
+    // First parameter
+    if (!(factoryOrAbi as F).deploy) {
+      abi = factoryOrAbi as Interface | InterfaceAbi;
     } else {
-      initData = newLogic.contract.interface._encodeParams([], []);
+      factory = factoryOrAbi as F;
     }
-    // Upgrade contract to use new logic
-    upgrReceipt = await (
-      await this.proxyAdmin!.upgradeAndCall(
-        this.proxyAddress,
-        newLogic.address,
-        initData,
-      )
-    ).wait();
-    // Check if upgrade done correctly
-    if (!upgrReceipt) {
+    // Second parameter
+    if (
+      (overridesOrBytecode &&
+        typeof (overridesOrBytecode as { object: string }).object ===
+          "string") ||
+      isBytesLike(overridesOrBytecode)
+    ) {
+      bytecode = overridesOrBytecode as BytesLike | { object: string };
+    } else if (overridesOrBytecode) {
+      overrides = overridesOrBytecode as Overrides;
+    }
+    // Check Factory and Signer before do anything else
+    if (abi && bytecode) {
+      factory = new ContractFactory(abi, bytecode, this.signer) as F;
+    }
+    if (!factory) {
       throw new Error(
-        "❌  ⛓️  Transaction execution failed. Undefined Receipt",
+        `❌  No valid Factory could be created. This should not happen 🤔 ...`,
       );
     }
-    const newLogicFromAdmin = await this.proxy.getImplementation();
-    if (newLogicFromAdmin == (await previousLogicFromAdmin)) {
-      throw new Error(
-        "❌  ⛓️  Upgrade failed. Previous address and new one are the same",
-      );
+    //* Implementation
+    // Upgrade
+    let newContract = (await upgrades.upgradeProxy(this.proxy, factory, {
+      kind: "uups",
+      txOverrides: overrides,
+    })) as unknown as C;
+    // Wait for deployment
+    newContract = (await newContract.waitForDeployment()) as C;
+    // Get the Receipt
+    const receipt = await newContract.deploymentTransaction()?.wait();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Bad deployment receipt`);
     }
-    if (newLogicFromAdmin != newLogic.address) {
-      throw new Error("❌  ⛓️  Upgrade failed. Logic addresess does not match");
+    // Get the Implementation address
+    const events = (await newContract.queryFilter(
+      newContract.filters.Upgraded(),
+      receipt?.blockNumber,
+      receipt?.blockNumber,
+    )) as EventLog[];
+    const implementation = events[0].args.implementation as string;
+    if (!isAddress(implementation)) {
+      throw new Error(`❌  ⛓️  Could not get implementation address`);
     }
     //* Result
-    // Create Custom Upgradeable Contract Instance
+    // Update THIS object
+    this.logicAddress = implementation;
+    this.logic = new BaseContract(
+      implementation,
+      factory.interface,
+      this.signer,
+    ) as C;
+    // Create and Return OPTIONAL Custom Upgradeable Contract Instance
     return {
-      contract: new CustomUpgrContract<C>(
-        this.proxyAddress,
-        newLogic.contract.interface,
-        this.proxy.runner as Signer,
-        newLogic.address,
-        this.proxyAdminAddress,
-      ),
-      receipt: logicReceipt,
+      contract: new CustomUpgrContract<C>(this.proxy, this.logic),
+      receipt: receipt,
     };
   }
   //* Protected generic functions
