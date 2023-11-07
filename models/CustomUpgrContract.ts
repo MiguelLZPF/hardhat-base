@@ -300,8 +300,10 @@ export default class CustomUpgrContract<
     return this.logic.interface;
   }
   // Functions
-  override attach(newProxy: string): void {
+  override attach(newProxy: string) {
     super.attach(newProxy);
+    this.proxy = this.proxy.attach(newProxy) as ERC1967Proxy;
+    return this;
   }
   override async getDeployedCode() {
     return this.logic.getDeployedCode();

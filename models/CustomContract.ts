@@ -152,6 +152,7 @@ export default class CustomContract<C extends CBaseContract> {
     this._checkAddress(newAddress);
     this.contract = this.contract.attach(newAddress) as C;
     this.address = newAddress;
+    return this;
   }
   connect(runner: ContractRunner) {
     this.contract = this.contract.connect(runner) as C;
