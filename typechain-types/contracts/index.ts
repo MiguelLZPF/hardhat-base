@@ -5,3 +5,4 @@ import type * as interfaces from "./interfaces";
 export type { interfaces };
 export type { Storage } from "./Storage";
 export type { StorageUpgr } from "./StorageUpgr";
+export type { StorageUpgrV1 } from "./StorageUpgrV1";

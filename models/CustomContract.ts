@@ -10,6 +10,7 @@ import {
   ContractTransactionReceipt,
   ContractMethodArgs,
   TransactionResponse,
+  TransactionReceipt,
   BytesLike,
   isAddress,
   Overrides,
@@ -52,6 +53,7 @@ export default class CustomContract<C extends CBaseContract> {
     } else {
       throw new Error(`❌  Constructor unknown error`);
     }
+    this._checkProvider();
     this.address = this.target;
   }
 
@@ -126,6 +128,7 @@ export default class CustomContract<C extends CBaseContract> {
   }
   get signer() {
     this._checkSigner();
+    this._checkProvider();
     return this.runner as Signer;
   }
   get interface() {
@@ -135,12 +138,13 @@ export default class CustomContract<C extends CBaseContract> {
     return this.contract.target;
   }
   get provider() {
+    this._checkProvider;
     if ((this.contract.runner as Signer).signMessage) {
-      return (this.contract.runner as Signer).provider;
+      return (this.contract.runner as Signer).provider!;
     } else if (this.contract.runner as Provider) {
-      return this.contract.runner as Provider;
+      return (this.contract.runner as Provider)!;
     } else {
-      return null;
+      throw new Error(`❌ Could not find provider`);
     }
   }
   // Functions
@@ -170,6 +174,15 @@ export default class CustomContract<C extends CBaseContract> {
       throw new Error(
         `❌  🖊️  Cannot write transactions without a valid signer. Use connect() method.`,
       );
+    }
+  }
+  protected _checkProvider() {
+    if (
+      !this.contract.runner ||
+      !(this.contract.runner as Provider) ||
+      !(this.contract.runner as Signer).provider
+    ) {
+      throw new Error(`❌  🛜  No provider detected. Instance not connected`);
     }
   }
   protected _checkAddress(...addresses: (string | Addressable | undefined)[]) {
@@ -224,5 +237,5 @@ export type CBaseContract =
 
 export interface ICCDeployResult<C extends CBaseContract = CBaseContract> {
   contract: CustomContract<C>;
-  receipt: ContractTransactionReceipt;
+  receipt: ContractTransactionReceipt | TransactionReceipt;
 }

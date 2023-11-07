@@ -62,3 +62,5 @@ export type { Storage } from "./contracts/Storage";
 export { Storage__factory } from "./factories/contracts/Storage__factory";
 export type { StorageUpgr } from "./contracts/StorageUpgr";
 export { StorageUpgr__factory } from "./factories/contracts/StorageUpgr__factory";
+export type { StorageUpgrV1 } from "./contracts/StorageUpgrV1";
+export { StorageUpgrV1__factory } from "./factories/contracts/StorageUpgrV1__factory";

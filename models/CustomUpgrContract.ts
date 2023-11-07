@@ -1,4 +1,3 @@
-import { GAS_OPT } from "configuration";
 import {
   Signer,
   Interface,
@@ -7,7 +6,6 @@ import {
   BaseContract,
   ContractRunner,
   ContractTransactionResponse,
-  ContractTransactionReceipt,
   ContractMethodArgs,
   BytesLike,
   Overrides,
@@ -29,28 +27,28 @@ export default class CustomUpgrContract<
 > extends CustomContract<C> {
   //* Properties
   proxy: ERC1967Proxy;
-  logic?: C;
-  proxyAddress: string | Addressable;
-  logicAddress?: string | Addressable;
+  logic: C;
+  // proxyAddress: string | Addressable;
+  logicAddress: string | Addressable;
   //* Contructor
-  constructor(proxy: ERC1967Proxy, logic?: C);
+  constructor(proxy: ERC1967Proxy, logic: C);
   constructor(
     proxyAddr: string,
+    logicAddr: string,
     abi: Interface | InterfaceAbi,
-    runner?: ContractRunner,
-    logicAddr?: string,
+    runner: ContractRunner,
   );
   constructor(
     proxyOrAddress: string | ERC1967Proxy,
-    abiOrLogic?: Interface | InterfaceAbi | C,
+    logicOrAddress: string | C,
+    abi?: Interface | InterfaceAbi,
     runner?: ContractRunner,
-    logicAddr?: string,
   ) {
     //* Check parameters
     let proxy: ERC1967Proxy | undefined;
     let proxyAddress: string | Addressable | undefined;
-    let abi: Interface | InterfaceAbi | undefined;
     let logic: C | undefined;
+    let logicAddress: string | Addressable | undefined;
     // First Parameter
     if (typeof proxyOrAddress === "string") {
       proxyAddress = proxyOrAddress as string;
@@ -58,35 +56,31 @@ export default class CustomUpgrContract<
       proxy = proxyOrAddress as ERC1967Proxy;
     }
     // Second Parameter
-    if (abiOrLogic && proxy) {
-      logic = abiOrLogic as C;
-    } else if (abiOrLogic) {
-      abi = abiOrLogic as Interface | InterfaceAbi;
+    if (typeof logicOrAddress === "string") {
+      logicAddress = logicOrAddress as string;
+    } else {
+      logic = logicOrAddress as C;
     }
     //* Implementation
-    if (proxy) {
+    if (proxy && logic) {
       // Use proxy address with logic's Interface
-      super(proxy as unknown as C);
+      super(logic.attach(proxy.target) as C);
       this.proxy = proxy;
       this.logic = logic;
-      this.logicAddress = logic?.target;
-    } else if (proxyAddress) {
+      this.logicAddress = logic.target;
+    } else if (proxyAddress && logicAddress && abi && runner) {
       // Use proxy address with logic's Interface
-      super(proxyAddress, abi!, runner!);
-      this._checkAddress(proxyAddress);
-      this.proxy = new BaseContract(
+      super(proxyAddress, abi, runner);
+      this._checkAddress(logicAddress);
+      this.proxy = ERC1967Proxy__factory.connect(
         proxyAddress as string,
-        ERC1967Proxy__factory.abi,
-        runner!,
-      ) as ERC1967Proxy;
-      this.logic = logicAddr
-        ? (new BaseContract(logicAddr, abi!, runner!) as C)
-        : undefined;
+        runner,
+      );
+      this.logic = new BaseContract(logicAddress as string, abi, runner) as C;
+      this.logicAddress = logicAddress;
     } else {
       throw new Error(`❌  Constructor unknown error`);
     }
-    this.proxyAddress = this.target;
-    this.logicAddress = this.logic?.target;
   }
   //* Static methods
   static async deployUpgradeable<
@@ -197,9 +191,9 @@ export default class CustomUpgrContract<
     return {
       contract: new CustomUpgrContract<C>(
         await contract.getAddress(),
+        implementation,
         factory.interface,
         signer,
-        implementation,
       ),
       receipt: receipt,
     };
@@ -250,28 +244,32 @@ export default class CustomUpgrContract<
         `❌  No valid Factory could be created. This should not happen 🤔 ...`,
       );
     }
-    //* Implementation
+    factory =
+      factory.runner && (factory.runner as Signer).signTransaction
+        ? factory
+        : (factory.connect(this.signer) as F);
+    //* Function Implementation
+    // Sotre previous receipt
+    const blockBeforeUpgrade = this.provider.getBlockNumber();
     // Upgrade
-    let newContract = (await upgrades.upgradeProxy(this.proxy, factory, {
+    let newContract = (await upgrades.upgradeProxy(this.proxyAddress, factory, {
       kind: "uups",
       txOverrides: overrides,
     })) as unknown as C;
-    // Wait for deployment
-    newContract = (await newContract.waitForDeployment()) as C;
-    // Get the Receipt
-    const receipt = await newContract.deploymentTransaction()?.wait();
-    if (!receipt) {
-      throw new Error(`❌  ⛓️  Bad deployment receipt`);
-    }
     // Get the Implementation address
     const events = (await newContract.queryFilter(
       newContract.filters.Upgraded(),
-      receipt?.blockNumber,
-      receipt?.blockNumber,
+      await blockBeforeUpgrade,
+      await this.provider.getBlockNumber(),
     )) as EventLog[];
     const implementation = events[0].args.implementation as string;
     if (!isAddress(implementation)) {
       throw new Error(`❌  ⛓️  Could not get implementation address`);
+    }
+    // Get transaction receipt from event
+    const receipt = await events[0].getTransactionReceipt();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Bad deployment receipt`);
     }
     //* Result
     // Update THIS object
@@ -287,6 +285,27 @@ export default class CustomUpgrContract<
       receipt: receipt,
     };
   }
+  //* Contract base functions
+  // Getters
+  get proxyAddress() {
+    return this.address;
+  }
+  get implementation() {
+    return this.logic;
+  }
+  get implementationAddress() {
+    return this.logicAddress;
+  }
+  get implementationInterface() {
+    return this.logic.interface;
+  }
+  // Functions
+  override attach(newProxy: string): void {
+    super.attach(newProxy);
+  }
+  override async getDeployedCode() {
+    return this.logic.getDeployedCode();
+  }
   //* Protected generic functions
 }
 
@@ -297,7 +316,7 @@ export type CBaseContract =
       UUPSUpgradeable)
   | (BaseContract & UUPSUpgradeable);
 
-export interface ICCUpgrDeployResult<C extends BaseContract = BaseContract>
+export interface ICCUpgrDeployResult<C extends CBaseContract = CBaseContract>
   extends Omit<ICCDeployResult<C>, "contract"> {
   contract: CustomUpgrContract<C>;
 }

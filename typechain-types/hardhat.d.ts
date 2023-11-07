@@ -125,6 +125,10 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgr",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.StorageUpgr__factory>;
+    getContractFactory(
+      name: "StorageUpgrV1",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.StorageUpgrV1__factory>;
 
     getContractAt(
       name: "AccessControlUpgradeable",
@@ -266,6 +270,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.StorageUpgr>;
+    getContractAt(
+      name: "StorageUpgrV1",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.StorageUpgrV1>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -379,6 +388,10 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgr",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgr>;
+    deployContract(
+      name: "StorageUpgrV1",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StorageUpgrV1>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -520,6 +533,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgr>;
+    deployContract(
+      name: "StorageUpgrV1",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StorageUpgrV1>;
 
     // default types
     getContractFactory(
