@@ -11,6 +11,7 @@ import {
   ContractMethodArgs,
   TransactionResponse,
   TransactionReceipt,
+  AddressLike,
   BytesLike,
   isAddress,
   Overrides,
@@ -186,7 +187,7 @@ export default class CustomContract<C extends CBaseContract> {
       throw new Error(`❌  🛜  No provider detected. Instance not connected`);
     }
   }
-  protected _checkAddress(...addresses: (string | Addressable | undefined)[]) {
+  protected _checkAddress(...addresses: (AddressLike | undefined)[]) {
     // remove undefined addresses
     addresses.filter((address) => address !== undefined);
     if (addresses.length > 1) {

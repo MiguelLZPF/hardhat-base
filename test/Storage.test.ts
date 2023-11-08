@@ -94,7 +94,7 @@ describe("Storage", () => {
     });
   });
 
-  describe("Owner", () => {
+  describe("Owner (AccessManagement)", () => {
     before("Set the correct signer", async () => {
       storage.connect(admin);
     });
@@ -104,10 +104,11 @@ describe("Storage", () => {
       const previous = await storage.owner();
       expect(previous).equal(admin.address);
       // change owner
-      await storage.transferOwnership(defaultUser.address, GAS_OPT.max);
+      const result = await storage.transferOwnership(defaultUser.address);
       // check final state
       const final = await storage.owner();
-      expect(final).to.equal(defaultUser.address);
+      expect(final).to.eq(defaultUser.address).to.eq(result.newOwner);
+      expect(previous).to.eq(result.oldOwner);
     });
 
     step("Should transfer back the ownership", async () => {
@@ -116,10 +117,11 @@ describe("Storage", () => {
       expect(previous).equal(defaultUser.address);
       // Change owner
       storage.connect(defaultUser);
-      await storage.transferOwnership(admin.address, GAS_OPT.max);
+      const result = await storage.transferOwnership(admin.address);
       // Check final state
       const final = await storage.owner();
-      expect(final).to.equal(admin.address);
+      expect(final).to.eq(admin.address).to.eq(result.newOwner);
+      expect(previous).to.eq(result.oldOwner);
     });
   });
 

@@ -4,17 +4,49 @@ import {
   ContractRunner,
   BigNumberish,
   Overrides,
-  isAddress,
+  AddressLike,
+  BytesLike,
 } from "ethers";
 import {
-  Ownable,
-  Storage as StorageType,
+  AccessControlEnumerable,
+  Storage as StorageBase,
   Storage__factory,
 } from "typechain-types";
 import CustomContract, { ICCDeployResult } from "models/CustomContract";
 import { GAS_OPT } from "configuration";
 
-export default class Storage extends CustomContract<StorageType & Ownable> {
+const GAS = {
+  deploy: {
+    ...GAS_OPT,
+    gasLimit: 700000,
+  },
+  store: {
+    ...GAS_OPT,
+    gasLimit: 30000,
+  },
+  payMe: {
+    ...GAS_OPT,
+    gasLimit: 50000,
+  },
+  grantRole: {
+    ...GAS_OPT,
+    gasLimit: 110000,
+  },
+  revokeRole: {
+    ...GAS_OPT,
+    gasLimit: 50000,
+  },
+  transferOwnership: {
+    ...GAS_OPT,
+    gasLimit: 110000 + 50000,
+  },
+};
+
+type StorageType = StorageBase & AccessControlEnumerable;
+
+export default class Storage extends CustomContract<StorageType> {
+  private DEFAULT_ADMIN_ROLE: string | undefined;
+  gas = GAS;
   // factory: Storage__factory;
   number: number | BigInt | undefined;
 
@@ -29,71 +61,142 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
   static async deployStorage(
     signer: Signer,
     initialValue?: number,
-    overrides: Overrides = GAS_OPT.max,
+    overrides: Overrides = GAS.deploy,
   ): Promise<IStorageDeployResult> {
-    const deployResult = await super.deploy<
-      Storage__factory,
-      StorageType & Ownable
-    >(
+    const deployResult = await super.deploy<Storage__factory, StorageType>(
       new Storage__factory(signer),
       undefined,
       initialValue ? [initialValue] : undefined,
       overrides,
     );
     return {
-      contract: new Storage(deployResult.contract.address, signer),
+      contract: new Storage(deployResult.contract.address as string, signer),
       receipt: deployResult.receipt,
     };
   }
 
   //* Custom contract functions
-  // Ownable
-  async transferOwnership(
-    newOwner: string,
+  // Access Control
+  async grantRole(
+    role: BytesLike,
+    account: AddressLike,
     overrides: Overrides = GAS_OPT.max,
   ) {
     // Check if valid address
-    this._checkAddress(newOwner);
+    this._checkAddress(account);
     // Check if valid signer
     this._checkSigner();
-    // Get signer's address
-    const oldOwner = (this.contract.runner as Signer).getAddress();
     // Actual transaction
     const receipt = await (
-      await this.contract.transferOwnership(newOwner, { ...overrides })
+      await this.contract.grantRole(role, account, { ...overrides })
     ).wait();
     if (!receipt) {
       throw new Error(
-        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Receipt is undefined`,
+        `❌  ⛓️  Cannot grant role "${role}" to ${account}. Receipt is undefined`,
       );
     }
     // Search for events to secure execution
     let events = await this.contract.queryFilter(
-      this.contract.filters.OwnershipTransferred(await oldOwner, newOwner),
-      receipt?.blockNumber,
-      receipt?.blockNumber,
+      this.contract.filters.RoleGranted(
+        role,
+        account,
+        await this.signer.getAddress(),
+      ),
+      receipt.blockNumber,
+      receipt.blockNumber,
     );
     if ((await this._checkExecutionEvent(events)) !== true) {
       throw new Error(
-        `❌  ⛓️  Cannot transfer ownership to ${newOwner} in ${this.contract.getAddress()}. Execution event not found`,
+        `❌  ⛓️  Cannot grant role "${role}" to ${account}. Execution event not found`,
       );
     }
     // All OK Transacction executed
     return {
-      oldOwner: await oldOwner,
-      newOwner: newOwner,
       receipt: receipt,
       event: events[0],
     };
   }
 
-  async owner(): Promise<string | undefined> {
-    const owner = await this.contract.owner();
-    if (isAddress(owner)) {
-      return owner;
-    } else {
-      return undefined;
+  async revokeRole(
+    role: BytesLike,
+    account: AddressLike,
+    overrides: Overrides = GAS_OPT.max,
+  ) {
+    // Check if valid address
+    this._checkAddress(account);
+    // Check if valid signer
+    this._checkSigner();
+    // Actual transaction
+    const receipt = await (
+      await this.contract.revokeRole(role, account, { ...overrides })
+    ).wait();
+    if (!receipt) {
+      throw new Error(
+        `❌  ⛓️  Cannot revoke role "${role}" to ${account}. Receipt is undefined`,
+      );
     }
+    // Search for events to secure execution
+    let events = await this.contract.queryFilter(
+      this.contract.filters.RoleRevoked(
+        role,
+        account,
+        await this.signer.getAddress(),
+      ),
+      receipt.blockNumber,
+      receipt.blockNumber,
+    );
+    if ((await this._checkExecutionEvent(events)) !== true) {
+      throw new Error(
+        `❌  ⛓️  Cannot revoke role "${role}" to ${account}. Execution event not found`,
+      );
+    }
+    // All OK Transacction executed
+    return {
+      receipt: receipt,
+      event: events[0],
+    };
+  }
+
+  async hasRole(role: BytesLike, account: AddressLike) {
+    return this.contract.hasRole(role, account);
+  }
+
+  // Ownable as AccessControl
+  async transferOwnership(newOwner: AddressLike, overrides?: Overrides) {
+    const oldOwner = this.owner();
+    const grantResult = await this.grantRole(
+      await this.defaultAdminRole,
+      newOwner,
+      overrides,
+    );
+    const revokeResult = await this.revokeRole(
+      await this.defaultAdminRole,
+      await oldOwner,
+      overrides,
+    );
+    return {
+      oldOwner: await oldOwner,
+      newOwner: await this.owner(),
+      receipt: { grant: grantResult.receipt, revoke: revokeResult.receipt },
+      event: { granted: grantResult.event, revoked: revokeResult.event },
+    };
+  }
+
+  async isSignerOwner() {
+    return (await this.owner()) === (await this.signer.getAddress());
+  }
+
+  async owner() {
+    const owner = await this.contract.getRoleMember(
+      await this.defaultAdminRole,
+      0,
+    );
+    this._checkAddress(owner);
+    return owner;
+  }
+
+  get defaultAdminRole() {
+    return this.DEFAULT_ADMIN_ROLE || this.contract.DEFAULT_ADMIN_ROLE();
   }
 
   // Storage
@@ -106,7 +209,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     ).wait();
     if (!receipt) {
       throw new Error(
-        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Receipt is undefined`,
+        `❌  ⛓️  Cannot store ${num} in ${this.address}. Receipt is undefined`,
       );
     }
     // Search for events to secure execution
@@ -117,7 +220,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     );
     if ((await this._checkExecutionEvent(events)) !== true) {
       throw new Error(
-        `❌  ⛓️  Cannot store ${num} in ${this.contract.getAddress()}. Execution event not found`,
+        `❌  ⛓️  Cannot store ${num} in ${this.address}. Execution event not found`,
       );
     }
     // All OK Transacction executed
@@ -138,7 +241,7 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     let events = await this.contract.queryFilter(
       this.contract.filters.ThankYou(
         await this.owner(),
-        await (this.contract.runner as Signer).getAddress(),
+        await this.signer.getAddress(),
         undefined,
       ),
       receipt?.blockNumber,
@@ -153,8 +256,8 @@ export default class Storage extends CustomContract<StorageType & Ownable> {
     return { receipt: receipt, event: events[0] };
   }
 
-  async retrieve(): Promise<BigNumberish> {
-    let result: BigNumberish = await this.contract.retrieve();
+  async retrieve(): Promise<BigInt | number> {
+    let result: BigInt | number = await this.contract.retrieve();
     try {
       result = Number(result);
     } catch (error) {
