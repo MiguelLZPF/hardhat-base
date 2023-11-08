@@ -11,7 +11,7 @@ import {
 } from "typechain-types";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
-import CustomWallet from "scripts/wallets";
+import CustomWallet from "models/Wallet";
 import StorageUpgr from "models/StorageUpgr";
 import CustomContract from "models/CustomContract";
 

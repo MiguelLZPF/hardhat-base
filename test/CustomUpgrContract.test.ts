@@ -1,6 +1,13 @@
 import { GAS_OPT, TEST } from "configuration";
 import hre from "hardhat";
-import { Signer, Provider, Block, ZeroAddress, Interface } from "ethers";
+import {
+  Signer,
+  Provider,
+  Block,
+  ZeroAddress,
+  Interface,
+  keccak256,
+} from "ethers";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
 import {
@@ -62,16 +69,22 @@ describe("CustomContract", () => {
         [12],
         GAS_OPT.max,
       );
-      expect(deployResult).not.to.be.undefined;
+      expect(deployResult).not.undefined;
       contract = deployResult.contract;
-      expect(contract).not.to.be.undefined;
-      expect(deployResult.receipt).not.to.be.undefined;
-      expect(contract.target).to.equal(contract.address);
-      expect(contract.target).to.equal(await contract.getAddress());
-      expect(contract.address).to.equal(await contract.getAddress());
-      expect(await contract.getDeployedCode()).not.to.be.null;
-      expect(await contract.getDeployedCode()).to.equal(
-        await provider.getCode(contract.implementation),
+      expect(contract).not.undefined;
+      expect(deployResult.receipt).not.undefined;
+      expect(contract.target)
+        .to.eq(contract.address)
+        .to.eq(contract.proxyAddress)
+        .to.eq(contract.storageAddress)
+        .to.eq(await contract.getAddress());
+      expect(contract.logicAddress)
+        .to.eq(contract.implementationAddress)
+        .to.not.eq(contract.proxyAddress);
+      const deployedCodeHash = keccak256((await contract.getDeployedCode())!);
+      expect(deployedCodeHash).not.undefined.null;
+      expect(deployedCodeHash).to.eq(
+        keccak256(await provider.getCode(contract.logicAddress)),
       );
     });
     it("Should deploy a new custom contract using Factory", async () => {
@@ -79,34 +92,56 @@ describe("CustomContract", () => {
         StorageUpgr__factory,
         StorageUpgr
       >(new StorageUpgr__factory(admin), admin, [12], GAS_OPT.max);
-      expect(deployResult).not.to.be.undefined;
+      expect(deployResult).not.undefined;
       contract = deployResult.contract;
-      expect(contract).not.to.be.undefined;
-      expect(deployResult.receipt).not.to.be.undefined;
-      expect(contract.target).to.equal(contract.address);
-      expect(contract.target).to.equal(await contract.getAddress());
-      expect(contract.address).to.equal(await contract.getAddress());
-      expect(await contract.getDeployedCode()).not.to.be.null;
-      expect(await contract.getDeployedCode()).to.equal(
-        await provider.getCode(contract.implementation),
+      expect(contract).not.undefined;
+      expect(deployResult.receipt).not.undefined;
+      expect(contract.target)
+        .to.eq(contract.address)
+        .to.eq(contract.proxyAddress)
+        .to.eq(contract.storageAddress)
+        .to.eq(await contract.getAddress());
+      expect(contract.logicAddress)
+        .to.eq(contract.implementationAddress)
+        .to.not.eq(contract.proxyAddress);
+      const deployedCodeHash = keccak256((await contract.getDeployedCode())!);
+      expect(deployedCodeHash).not.undefined.null;
+      expect(deployedCodeHash).to.eq(
+        keccak256(await provider.getCode(contract.logicAddress)),
       );
     });
     it("Should Upgrade to a new logic", async () => {
+      // Check implementation chage
+      const NUM = 2;
+      await contract.contract.store(NUM);
+      const resultV0 = await contract.contract.retrieve();
+      expect(Number(resultV0)).to.eq(NUM);
       const deployResult = await contract.upgrade(
         new StorageUpgrV1__factory(),
         GAS_OPT.max,
       );
-      expect(deployResult).not.to.be.undefined;
+      expect(deployResult).not.undefined;
       contract = deployResult.contract;
-      expect(contract).not.to.be.undefined;
-      expect(deployResult.receipt).not.to.be.undefined;
-      expect(contract.target).to.equal(contract.address);
-      expect(contract.target).to.equal(await contract.getAddress());
-      expect(contract.address).to.equal(await contract.getAddress());
-      expect(await contract.getDeployedCode()).not.to.be.null;
-      expect(await contract.getDeployedCode()).to.equal(
-        await provider.getCode(contract.implementation),
+      expect(contract).not.undefined;
+      expect(deployResult.receipt).not.undefined;
+      expect(contract.target)
+        .to.eq(contract.address)
+        .to.eq(contract.proxyAddress)
+        .to.eq(contract.storageAddress)
+        .to.eq(await contract.getAddress());
+      expect(contract.logicAddress)
+        .to.eq(contract.implementationAddress)
+        .to.not.eq(contract.proxyAddress);
+      const deployedCodeHash = keccak256((await contract.getDeployedCode())!);
+      expect(deployedCodeHash).not.undefined.null;
+      expect(deployedCodeHash).to.eq(
+        keccak256(await provider.getCode(contract.logicAddress)),
       );
+      // Check implementation chage
+      await contract.contract.store(NUM);
+      const resultV1 = await contract.contract.retrieve();
+      expect(Number(resultV1)).to.eq(NUM * 2);
+      expect(Number(resultV1)).not.to.eq(Number(resultV0));
     });
   });
   describe("Create new Instance", () => {

@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
-import CustomWallet from "scripts/wallets";
+import CustomWallet from "models/Wallet";
 import Storage from "models/Storage";
 
 // Specific Constants

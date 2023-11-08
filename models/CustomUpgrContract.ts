@@ -164,27 +164,34 @@ export default class CustomUpgrContract<
       );
     }
     signer = signer ? signer : (factory?.runner as Signer);
+    if (!signer.provider) {
+      throw new Error(
+        `❌  No valid Signer provided direcly or through the Factory. Signer not connected to any Provider.`,
+      );
+    }
     //* Implementation
+    //* Function Implementation
+    // Store previous receipt
+    const blockBeforeUpgrade = signer.provider.getBlockNumber();
+    // Deploy
     let contract = (await upgrades.deployProxy(factory, args, {
       kind: "uups",
       txOverrides: overrides,
     })) as unknown as C;
-    // Wait for deployment
-    contract = (await contract.waitForDeployment()) as C;
-    // Get the Receipt
-    const receipt = await contract.deploymentTransaction()?.wait();
-    if (!receipt) {
-      throw new Error(`❌  ⛓️  Bad deployment receipt`);
-    }
     // Get the Implementation address
     const events = (await contract.queryFilter(
       contract.filters.Upgraded(),
-      receipt?.blockNumber,
-      receipt?.blockNumber,
+      await blockBeforeUpgrade,
+      await signer.provider.getBlockNumber(),
     )) as EventLog[];
     const implementation = events[0].args.implementation as string;
     if (!isAddress(implementation)) {
       throw new Error(`❌  ⛓️  Could not get implementation address`);
+    }
+    // Get transaction receipt from event
+    const receipt = await events[0].getTransactionReceipt();
+    if (!receipt) {
+      throw new Error(`❌  ⛓️  Bad deployment receipt`);
     }
     //* Result
     // Create Custom Upgradeable Contract Instance
@@ -249,7 +256,7 @@ export default class CustomUpgrContract<
         ? factory
         : (factory.connect(this.signer) as F);
     //* Function Implementation
-    // Sotre previous receipt
+    // Store previous receipt
     const blockBeforeUpgrade = this.provider.getBlockNumber();
     // Upgrade
     let newContract = (await upgrades.upgradeProxy(this.proxyAddress, factory, {
@@ -292,6 +299,12 @@ export default class CustomUpgrContract<
   }
   get implementation() {
     return this.logic;
+  }
+  get storage() {
+    return this.proxy;
+  }
+  get storageAddress() {
+    return this.proxyAddress;
   }
   get implementationAddress() {
     return this.logicAddress;
