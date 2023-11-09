@@ -15,7 +15,6 @@ import {
   BytesLike,
   isAddress,
   Overrides,
-  Addressable,
   EventLog,
   Log,
 } from "ethers";
@@ -23,11 +22,11 @@ import {
 export default class CustomContract<C extends CBaseContract> {
   //* Properties
   contract: C;
-  address: string | Addressable;
+  address: string;
   //* Contructor
   constructor(contract: C);
   constructor(
-    address: string | Addressable,
+    address: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
   );
@@ -55,7 +54,7 @@ export default class CustomContract<C extends CBaseContract> {
       throw new Error(`❌  Constructor unknown error`);
     }
     this._checkProvider();
-    this.address = this.target;
+    this.address = this.target as string;
   }
 
   //* Static methods

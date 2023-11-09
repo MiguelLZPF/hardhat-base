@@ -4,7 +4,6 @@ import {
   ContractRunner,
   BigNumberish,
   Overrides,
-  AddressLike,
   BytesLike,
 } from "ethers";
 import {
@@ -70,7 +69,7 @@ export default class Storage extends CustomContract<StorageType> {
       overrides,
     );
     return {
-      contract: new Storage(deployResult.contract.address as string, signer),
+      contract: new Storage(deployResult.contract.address, signer),
       receipt: deployResult.receipt,
     };
   }
@@ -79,7 +78,7 @@ export default class Storage extends CustomContract<StorageType> {
   // Access Control
   async grantRole(
     role: BytesLike,
-    account: AddressLike,
+    account: string,
     overrides: Overrides = GAS_OPT.max,
   ) {
     // Check if valid address
@@ -119,7 +118,7 @@ export default class Storage extends CustomContract<StorageType> {
 
   async revokeRole(
     role: BytesLike,
-    account: AddressLike,
+    account: string,
     overrides: Overrides = GAS_OPT.max,
   ) {
     // Check if valid address
@@ -157,12 +156,12 @@ export default class Storage extends CustomContract<StorageType> {
     };
   }
 
-  async hasRole(role: BytesLike, account: AddressLike) {
+  async hasRole(role: BytesLike, account: string) {
     return this.contract.hasRole(role, account);
   }
 
   // Ownable as AccessControl
-  async transferOwnership(newOwner: AddressLike, overrides?: Overrides) {
+  async transferOwnership(newOwner: string, overrides?: Overrides) {
     const oldOwner = this.owner();
     const grantResult = await this.grantRole(
       await this.defaultAdminRole,

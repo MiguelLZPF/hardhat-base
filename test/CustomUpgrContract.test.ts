@@ -112,7 +112,7 @@ describe("CustomContract", () => {
     });
     it("Should Upgrade to a new logic", async () => {
       // Check implementation chage
-      const NUM = 2;
+      const NUM = 8;
       await contract.contract.store(NUM);
       const resultV0 = await contract.contract.retrieve();
       expect(Number(resultV0)).to.eq(NUM);
@@ -140,7 +140,7 @@ describe("CustomContract", () => {
       // Check implementation chage
       await contract.contract.store(NUM);
       const resultV1 = await contract.contract.retrieve();
-      expect(Number(resultV1)).to.eq(NUM * 2);
+      expect(Number(resultV1)).to.eq(NUM + 2);
       expect(Number(resultV1)).not.to.eq(Number(resultV0));
     });
   });

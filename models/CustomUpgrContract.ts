@@ -9,7 +9,6 @@ import {
   ContractMethodArgs,
   BytesLike,
   Overrides,
-  Addressable,
   isAddress,
   isBytesLike,
   EventLog,
@@ -28,8 +27,7 @@ export default class CustomUpgrContract<
   //* Properties
   proxy: ERC1967Proxy;
   logic: C;
-  // proxyAddress: string | Addressable;
-  logicAddress: string | Addressable;
+  logicAddress: string;
   //* Contructor
   constructor(proxy: ERC1967Proxy, logic: C);
   constructor(
@@ -46,9 +44,9 @@ export default class CustomUpgrContract<
   ) {
     //* Check parameters
     let proxy: ERC1967Proxy | undefined;
-    let proxyAddress: string | Addressable | undefined;
+    let proxyAddress: string | undefined;
     let logic: C | undefined;
-    let logicAddress: string | Addressable | undefined;
+    let logicAddress: string | undefined;
     // First Parameter
     if (typeof proxyOrAddress === "string") {
       proxyAddress = proxyOrAddress as string;
@@ -67,16 +65,13 @@ export default class CustomUpgrContract<
       super(logic.attach(proxy.target) as C);
       this.proxy = proxy;
       this.logic = logic;
-      this.logicAddress = logic.target;
+      this.logicAddress = logic.target as string;
     } else if (proxyAddress && logicAddress && abi && runner) {
       // Use proxy address with logic's Interface
       super(proxyAddress, abi, runner);
       this._checkAddress(logicAddress);
-      this.proxy = ERC1967Proxy__factory.connect(
-        proxyAddress as string,
-        runner,
-      );
-      this.logic = new BaseContract(logicAddress as string, abi, runner) as C;
+      this.proxy = ERC1967Proxy__factory.connect(proxyAddress, runner);
+      this.logic = new BaseContract(logicAddress, abi, runner) as C;
       this.logicAddress = logicAddress;
     } else {
       throw new Error(`❌  Constructor unknown error`);
@@ -184,7 +179,7 @@ export default class CustomUpgrContract<
       await blockBeforeUpgrade,
       await signer.provider.getBlockNumber(),
     )) as EventLog[];
-    const implementation = events[0].args.implementation as string;
+    const implementation = events[0].args.implementation;
     if (!isAddress(implementation)) {
       throw new Error(`❌  ⛓️  Could not get implementation address`);
     }
@@ -269,7 +264,7 @@ export default class CustomUpgrContract<
       await blockBeforeUpgrade,
       await this.provider.getBlockNumber(),
     )) as EventLog[];
-    const implementation = events[0].args.implementation as string;
+    const implementation = events[0].args.implementation;
     if (!isAddress(implementation)) {
       throw new Error(`❌  ⛓️  Could not get implementation address`);
     }

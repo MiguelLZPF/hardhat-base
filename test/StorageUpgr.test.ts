@@ -4,10 +4,9 @@ import { step } from "mocha-steps";
 import { expect } from "chai";
 import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
 import {
-  IStorage,
-  Ownable,
   ProxyAdmin,
   ProxyAdmin__factory,
+  StorageUpgrV1__factory,
 } from "typechain-types";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
@@ -19,8 +18,7 @@ import CustomContract from "models/CustomContract";
 const CONTRACT_NAME = "StorageUpgr";
 const STORAGE_DEPLOYED_AT = undefined;
 const STORAGE_LOGIC = undefined;
-const PROXY_ADMIN = undefined;
-const INIT_VALUE = 12;
+const VALUES = { initial: 12, beforeUpgrade: 21, afterUpgrade: 8 };
 
 // General Variables
 let provider: Provider;
@@ -59,14 +57,9 @@ describe("Storage", () => {
   });
 
   describe("Deployment and Initialization", () => {
-    if (STORAGE_DEPLOYED_AT && STORAGE_LOGIC && PROXY_ADMIN) {
+    if (STORAGE_DEPLOYED_AT && STORAGE_LOGIC) {
       step("Should create contract instance", async () => {
-        storage = new StorageUpgr(
-          STORAGE_DEPLOYED_AT,
-          admin,
-          STORAGE_LOGIC,
-          PROXY_ADMIN,
-        );
+        storage = new StorageUpgr(STORAGE_DEPLOYED_AT, STORAGE_LOGIC, admin);
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).to.equal(STORAGE_DEPLOYED_AT);
         console.log(
@@ -74,25 +67,10 @@ describe("Storage", () => {
         );
       });
     } else {
-      step("Should deploy ProxyAdmin", async () => {
-        const deployResult = await CustomContract.deploy<
-          ProxyAdmin__factory,
-          ProxyAdmin
-        >(new ProxyAdmin__factory(admin), admin, [admin.address], GAS_OPT.max);
-        proxyAdmin = deployResult.contract;
-        expect(isAddress(proxyAdmin.address)).to.be.true;
-        expect(proxyAdmin.address).not.to.equal(ZeroAddress);
-        console.log(
-          `NEW Proxy Admin contract deployed at: ${proxyAdmin.address}`,
-        );
-      });
       step("Should deploy contract", async () => {
         const deployResult = await StorageUpgr.deployStorage(
           admin,
-          proxyAdmin.address,
-          INIT_VALUE,
-          undefined,
-          true,
+          VALUES.initial,
         );
         storage = deployResult.contract;
         expect(isAddress(storage.address)).to.be.true;
@@ -103,7 +81,7 @@ describe("Storage", () => {
       });
       step("Should check if correct initialization", async () => {
         const response = await storage.retrieve();
-        expect(response).equal(INIT_VALUE);
+        expect(response).equal(VALUES.initial);
       });
     }
   });
@@ -116,17 +94,47 @@ describe("Storage", () => {
     step("Should store new value", async () => {
       // check initial state
       const previous = await storage.retrieve();
-      expect(previous).equal(INIT_VALUE);
+      expect(previous).equal(VALUES.initial);
       // change stored value
-      const newValue = 21;
+      const newValue = VALUES.beforeUpgrade;
       await storage.store(newValue);
       // check final state
       const final = await storage.retrieve();
       expect(final).to.equal(newValue);
     });
+
+    step("Should upgrade to new logic | implementation", async () => {
+      // Check initial state
+      const previous = storage.implementationAddress;
+      expect(previous).equal(storage.logicAddress);
+      const previousBytecode = await storage.getDeployedCode();
+      expect(previousBytecode).not.undefined.null;
+      //* Upgrade
+      const upgradeResult = await storage.upgradeStorage(
+        new StorageUpgrV1__factory(admin),
+      );
+      // check final state
+      const final = storage.implementationAddress;
+      expect(final).not.eq(previous);
+      const finalBytecode = await storage.getDeployedCode();
+      expect(finalBytecode).not.undefined.null;
+      expect(finalBytecode).not.eq(previousBytecode);
+    });
+
+    step("Should store new value with new logic", async () => {
+      // check initial state
+      const previous = await storage.retrieve();
+      expect(previous).equal(VALUES.beforeUpgrade);
+      // change stored value
+      const newValue = VALUES.afterUpgrade;
+      await storage.store(newValue);
+      // check final state
+      const final = await storage.retrieve();
+      expect(final).to.equal(newValue + 2);
+    });
   });
 
-  describe("Owner", () => {
+  describe("Owner (AccessManagement)", () => {
     before("Set the correct signer", async () => {
       storage.connect(admin);
     });
@@ -136,10 +144,11 @@ describe("Storage", () => {
       const previous = await storage.owner();
       expect(previous).equal(admin.address);
       // change owner
-      await storage.transferOwnership(defaultUser.address, GAS_OPT.max);
+      const result = await storage.transferOwnership(defaultUser.address);
       // check final state
       const final = await storage.owner();
-      expect(final).to.equal(defaultUser.address);
+      expect(final).to.eq(defaultUser.address).to.eq(result.newOwner);
+      expect(previous).to.eq(result.oldOwner);
     });
 
     step("Should transfer back the ownership", async () => {
@@ -148,10 +157,11 @@ describe("Storage", () => {
       expect(previous).equal(defaultUser.address);
       // Change owner
       storage.connect(defaultUser);
-      await storage.transferOwnership(admin.address, GAS_OPT.max);
+      const result = await storage.transferOwnership(admin.address);
       // Check final state
       const final = await storage.owner();
-      expect(final).to.equal(admin.address);
+      expect(final).to.eq(admin.address).to.eq(result.newOwner);
+      expect(previous).to.eq(result.oldOwner);
     });
   });
 
