@@ -1,4 +1,4 @@
-import { Hardfork, INetwork, NetworkName } from "models/Configuration";
+import { Hardfork, Network } from "models/Configuration";
 import { Overrides } from "ethers";
 
 /**
@@ -42,19 +42,9 @@ export const BLOCKCHAIN = {
     maxPriorityFeePerGas: 100,
     initialBaseFeePerGas: 7,
   },
-  networks: new Map<NetworkName | undefined, INetwork>([
+  networks: new Map<BigInt | undefined, Network>([
     [
-      undefined,
-      {
-        chainId: BigInt(31337),
-        name: "hardhat",
-        protocol: "http",
-        hostname: "127.0.0.1",
-        port: 8545,
-      },
-    ],
-    [
-      "hardhat",
+      undefined || BigInt(0) || BigInt(31337), // Default
       {
         chainId: BigInt(31337),
         name: "hardhat",
@@ -64,7 +54,7 @@ export const BLOCKCHAIN = {
       },
     ],
     [
-      "ganache",
+      BigInt(1337),
       {
         chainId: BigInt(1337),
         name: "ganache",
@@ -75,7 +65,7 @@ export const BLOCKCHAIN = {
       },
     ],
     [
-      "mainTest",
+      BigInt(1666),
       {
         chainId: BigInt(1666),
         name: "mainTest",

@@ -1,5 +1,6 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
+import "hardhat-deploy";
 import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
@@ -37,6 +38,7 @@ import {
   IUpgradeDeployment,
 } from "models/Deploy";
 import CustomWallet from "models/Wallet";
+import Environment, { networkNameToId } from "models/Configuration";
 
 //* TASKS
 // subtask("create-signer", "Creates new signer from given params")
@@ -888,6 +890,41 @@ import CustomWallet from "models/Wallet";
 //     );
 //   });
 
+task("quick-test", "Random quick testing function")
+  .addOptionalParam(
+    "args",
+    "Contract initialize function's arguments if any",
+    undefined,
+    types.json,
+  )
+  .setAction(async ({ args }, hre: HardhatRuntimeEnvironment) => {
+    if (args) {
+      // example: npx hardhat quick-test --args '[12, "hello"]'
+      console.log(
+        "RAW Args: ",
+        args,
+        typeof args[0],
+        args[0],
+        typeof args[1],
+        args[1],
+      );
+    }
+    const env = new Environment(hre);
+    console.log(env);
+    console.log("Latest block: ", await hre.ethers.provider.getBlockNumber());
+    console.log(
+      "First accounts: ",
+      await (await hre.ethers.provider.getSigner(0)).getAddress(),
+      await (await hre.ethers.provider.getSigner(1)).getAddress(),
+    );
+    console.log(
+      "First account balance: ",
+      await hre.ethers.provider.getBalance(
+        await (await hre.ethers.provider.getSigner(0)).getAddress(),
+      ),
+    );
+  });
+
 //* Config
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -901,9 +938,13 @@ const config: HardhatUserConfig = {
       evmVersion: BLOCKCHAIN.default.evm,
     },
   },
+  namedAccounts: {
+    admin: 0,
+    defaultUser: 1,
+  },
   networks: {
     hardhat: {
-      chainId: Number(BLOCKCHAIN.networks.get("hardhat")!.chainId),
+      chainId: Number(networkNameToId.hardhat),
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
@@ -926,10 +967,10 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `${BLOCKCHAIN.networks.get("ganache")
-        ?.protocol}://${BLOCKCHAIN.networks.get("ganache")
-        ?.hostname}:${BLOCKCHAIN.networks.get("ganache")?.port}`,
-      chainId: Number(BLOCKCHAIN.networks.get("ganache")?.chainId),
+      url: `${BLOCKCHAIN.networks.get(networkNameToId.ganache)
+        ?.protocol}://${BLOCKCHAIN.networks.get(networkNameToId.ganache)
+        ?.hostname}:${BLOCKCHAIN.networks.get(networkNameToId.ganache)?.port}`,
+      chainId: Number(networkNameToId.ganache),
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,

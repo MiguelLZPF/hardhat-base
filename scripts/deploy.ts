@@ -1,12 +1,9 @@
-import { BLOCKCHAIN, CONTRACTS, DEPLOY, GAS_OPT } from "configuration";
+import { BLOCKCHAIN, DEPLOY, GAS_OPT } from "configuration";
 import {
   chainIdToNetwork,
-  getArtifact,
-  getContractInstance,
   getContractTimestamp,
   gNetwork,
   gProvider,
-  PROXY_ADMIN_CODEHASH,
 } from "scripts/utils";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import {
@@ -30,12 +27,7 @@ import {
 import yesno from "yesno";
 import { readFileSync, writeFileSync, existsSync, statSync } from "fs";
 import { ContractName, PromiseOrValue } from "models/Configuration";
-import {
-  ProxyAdmin,
-  ProxyAdmin__factory,
-  TUP,
-  TUP__factory,
-} from "typechain-types";
+import { ProxyAdmin, ProxyAdmin__factory } from "typechain-types";
 import CustomContract from "models/CustomContract";
 import CustomUpgrContract from "models/CustomUpgrContract";
 

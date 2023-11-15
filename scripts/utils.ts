@@ -1,48 +1,13 @@
-import { BLOCKCHAIN } from "configuration";
-import { ContractName, INetwork, NetworkName } from "models/Configuration";
-import { Artifact, HardhatRuntimeEnvironment } from "hardhat/types";
 import {
   Contract,
   BaseContract,
   TransactionReceipt,
-  Signer,
   Provider,
   BlockTag,
-  keccak256,
   isAddress,
 } from "ethers";
-import { existsSync, mkdirSync, readFileSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import util from "util";
-import { getContractDeployment } from "./deploy";
-import { IRegularDeployment, IUpgradeDeployment } from "models/Deploy";
-
-// Global HRE, Ethers Provider and network parameters
-export let ghre: HardhatRuntimeEnvironment;
-export let gEthers: HardhatRuntimeEnvironment["ethers"];
-export let gProvider: Provider;
-export let gNetwork: INetwork;
-
-/**
- * Set Global HRE
- * @param hre HardhatRuntimeEnvironment to be set as global
- */
-export const setGlobalHRE = async (hre: HardhatRuntimeEnvironment) => {
-  ghre = hre;
-  gEthers = hre.ethers;
-  gProvider = hre.ethers.provider;
-  // get the current network parameters based on chainId
-  gNetwork = BLOCKCHAIN.networks.get(
-    chainIdToNetwork.get((await gProvider.getNetwork()).chainId),
-  )!;
-  return { gProvider, gNetwork };
-};
-
-export const chainIdToNetwork = new Map<BigInt | undefined, NetworkName>([
-  [undefined, "hardhat"],
-  [BLOCKCHAIN.networks.get("hardhat")!.chainId, "hardhat"],
-  [BLOCKCHAIN.networks.get("ganache")!.chainId, "ganache"],
-  [BLOCKCHAIN.networks.get("mainTest")!.chainId, "mainTest"],
-]);
 
 /**
  * Gets the deployed contract timestamp

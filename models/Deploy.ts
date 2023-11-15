@@ -1,6 +1,6 @@
 import { ContractName, NetworkName } from "models/Configuration";
 import { BaseContract, BytesLike } from "ethers";
-import CustomContract from "models/CustomContract";
+import CustomContract, { CBaseContract } from "models/CustomContract";
 import CustomUpgrContract from "models/CustomUpgrContract";
 
 interface IDeployment {
@@ -35,12 +35,12 @@ export interface INetworkDeployment {
   };
 }
 
-export interface IDeployReturn<T extends BaseContract> {
+export interface IDeployReturn<T extends CBaseContract> {
   deployment: IRegularDeployment;
   contract: CustomContract<T>;
 }
 
-export interface IUpgrDeployReturn<T extends BaseContract> {
+export interface IUpgrDeployReturn<T extends CBaseContract> {
   deployment: IUpgradeDeployment;
   adminDeployment?: IRegularDeployment;
   contract: CustomUpgrContract<T>;
