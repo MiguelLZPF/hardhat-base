@@ -1,6 +1,7 @@
 import Environment, {
   CONTRACT_NAMES,
   ContractName,
+  ENV,
 } from "models/Configuration";
 import {
   TransactionReceipt,
@@ -9,7 +10,7 @@ import {
   keccak256,
 } from "ethers";
 import { BLOCKCHAIN, DEPLOY } from "configuration";
-import { readFileSync, existsSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 
 // hash(chainId, ContractName, tag) --> Deployment
 type Deployments = Map<string, Deployment>;
@@ -58,15 +59,14 @@ export default class Deployment {
   }
   //* Static
   static async fromReceipt(
-    env: Environment,
     name: ContractName,
     receipt: ContractTransactionReceipt | TransactionReceipt,
     address?: string,
     tag?: string,
   ) {
     const [transaction, block] = await Promise.all([
-      env.provider.getTransaction(receipt.hash),
-      env.provider.getBlock(receipt.blockHash),
+      ENV.provider.getTransaction(receipt.hash),
+      ENV.provider.getBlock(receipt.blockHash),
     ]);
     if (!transaction) {
       throw new Error(`❌ 🔎 could not find transaction ${receipt.hash}`);
@@ -74,15 +74,15 @@ export default class Deployment {
     if (!block) {
       throw new Error(`❌ 🔎 could not find transaction ${receipt.blockHash}`);
     }
-    new Deployment(
+    return new Deployment(
       name,
       (address || receipt.contractAddress)!,
       block.timestamp,
       transaction.hash,
       block.hash || receipt.blockHash,
-      env.network.chainId,
+      ENV.network.chainId,
       tag,
-      env.provider,
+      ENV.provider,
     );
   }
   static async fromJson(

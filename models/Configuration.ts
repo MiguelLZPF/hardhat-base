@@ -25,6 +25,8 @@ export const networkNameToId: Record<NetworkName, BigInt> = {
   mainTest: BigInt(1666),
 };
 
+export let ENV: Environment;
+
 export default class Environment {
   hre: HardhatRuntimeEnvironment;
   ethers: HardhatRuntimeEnvironment["ethers"];
@@ -36,6 +38,7 @@ export default class Environment {
     this.ethers = hre.ethers;
     this.provider = hre.ethers.provider;
     this.network = Environment.getNetwork(hre.network.config.chainId);
+    ENV = this;
   }
 
   static getNetwork(chainId: BigInt | number = 0) {
