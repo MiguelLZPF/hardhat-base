@@ -25,16 +25,21 @@ export default class Deployment {
   tag: string;
   provider?: Provider;
 
+  // Ugradeable deployment
+  upgradeable: boolean;
+  private _logic?: string;
+
   constructor(deployment: Deployment);
   constructor(
     name: ContractName,
-    address?: string,
-    timestamp?: Date | string | number,
-    txHash?: string,
-    blockHash?: string,
-    chainId?: BigInt,
+    address: string,
+    timestamp: Date | string | number,
+    txHash: string,
+    blockHash: string,
+    chainId: BigInt,
     tag?: string,
     provider?: Provider,
+    logic?: string,
   );
   constructor(
     deploymentOrName: ContractName | Deployment,
@@ -45,23 +50,28 @@ export default class Deployment {
     chainId?: BigInt,
     tag?: string,
     provider?: Provider,
+    logic?: string,
   ) {
     this.name =
       (deploymentOrName as ContractName) ||
       (deploymentOrName as Deployment).name;
     this.address = address || (deploymentOrName as Deployment).address;
+    this._logic = logic || (deploymentOrName as Deployment)._logic;
     this.timestamp = timestamp || (deploymentOrName as Deployment).timestamp;
     this.txHash = txHash || (deploymentOrName as Deployment).txHash;
     this.blockHash = blockHash || (deploymentOrName as Deployment).blockHash;
     this.chainId = chainId || (deploymentOrName as Deployment).chainId;
     this.tag = tag || (deploymentOrName as Deployment).tag || "untagged";
     this.provider = provider || (deploymentOrName as Deployment).provider;
+    // Set upgradeable flag based on logic
+    this._logic ? (this.upgradeable = true) : (this.upgradeable = false);
   }
   //* Static
   static async fromReceipt(
     name: ContractName,
     receipt: ContractTransactionReceipt | TransactionReceipt,
     address?: string,
+    logic?: string,
     tag?: string,
   ) {
     const [transaction, block] = await Promise.all([
@@ -83,6 +93,7 @@ export default class Deployment {
       ENV.network.chainId,
       tag,
       ENV.provider,
+      logic,
     );
   }
   static async fromJson(
@@ -179,6 +190,18 @@ export default class Deployment {
   get network() {
     return Environment.getNetwork(this.chainId);
   }
+  get proxy() {
+    this._checkUpgradeable();
+    return this.address;
+  }
+  get logic() {
+    this._checkUpgradeable();
+    return this._logic;
+  }
+  get implementation() {
+    this._checkUpgradeable();
+    return this._logic;
+  }
   async getTransaction(provider: Provider | undefined = this.provider) {
     provider = this._checkProvider(provider);
     return provider.getTransaction(this.txHash);
@@ -204,5 +227,10 @@ export default class Deployment {
     tag: string = this.tag,
   ) {
     return Deployment.calculateKeyHash(chainId, name, tag);
+  }
+  private _checkUpgradeable() {
+    if (!this.upgradeable) {
+      throw new Error(`❌ This deployment is not upgradeable`);
+    }
   }
 }
