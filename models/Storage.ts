@@ -11,7 +11,7 @@ import {
   Storage as StorageBase,
   Storage__factory,
 } from "typechain-types";
-import CustomContract, { ICCDeployResult } from "models/CustomContract";
+import CustomContract, { CCDeployResult } from "models/CustomContract";
 import { GAS_OPT } from "configuration";
 
 const GAS = {
@@ -61,7 +61,7 @@ export default class Storage extends CustomContract<StorageType> {
     signer: Signer,
     initialValue?: number,
     overrides: Overrides = GAS.deploy,
-  ): Promise<IStorageDeployResult> {
+  ): Promise<StorageDeployResult> {
     const deployResult = await super.deploy<Storage__factory, StorageType>(
       new Storage__factory(signer),
       undefined,
@@ -267,7 +267,7 @@ export default class Storage extends CustomContract<StorageType> {
   }
 }
 
-export interface IStorageDeployResult
-  extends Omit<ICCDeployResult<StorageType>, "contract"> {
+export interface StorageDeployResult
+  extends Omit<CCDeployResult<StorageType>, "contract"> {
   contract: Storage;
 }

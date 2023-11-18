@@ -8,12 +8,13 @@ import {
 } from "ethers";
 import {
   AccessControlEnumerable,
+  ERC1967Proxy,
   OwnableUpgradeable,
   StorageUpgr as StorageBase,
   StorageUpgr__factory,
 } from "typechain-types";
 import CustomUpgrContract, {
-  ICCUpgrDeployResult,
+  ICCUpgrDeployResult as CCUpgrDeployResult,
 } from "models/CustomUpgrContract";
 import { GAS_OPT } from "configuration";
 
@@ -49,13 +50,21 @@ type StorageType = StorageBase & AccessControlEnumerable;
 export default class StorageUpgr extends CustomUpgrContract<StorageType> {
   private DEFAULT_ADMIN_ROLE: string | undefined;
   gas = GAS;
-  // factory: Storage__factory;
-  number: number | BigInt | undefined;
+  number?: number | BigInt;
 
-  // TODO: constructor(proxy: ERC1967Proxy, logic: StorageType);
-  // constructor(proxy: AddressLike, logic: AddressLike, provider: Provider);
-  constructor(proxy: string, logic: string, runner: ContractRunner) {
-    super(proxy, logic, StorageUpgr__factory.abi, runner);
+  constructor(proxy: ERC1967Proxy, logic: StorageType, runner: ContractRunner);
+  constructor(proxy: string, logic: string, runner: ContractRunner);
+  constructor(
+    proxy: ERC1967Proxy | string,
+    logic: StorageType | string,
+    runner: ContractRunner,
+  ) {
+    super(
+      (proxy as string) || ((proxy as ERC1967Proxy).target as string),
+      (logic as string) || ((logic as StorageType).target as string),
+      StorageUpgr__factory.abi,
+      runner,
+    );
     this.number = undefined;
   }
 
@@ -63,7 +72,7 @@ export default class StorageUpgr extends CustomUpgrContract<StorageType> {
     signer: Signer,
     initialValue?: number,
     overrides: Overrides = GAS_OPT.max,
-  ): Promise<IStorageUpgrDeployResult> {
+  ): Promise<StorageUpgrDeployResult> {
     const deployResult = await super.deployUpgradeable<
       StorageUpgr__factory,
       StorageType & OwnableUpgradeable
@@ -87,12 +96,20 @@ export default class StorageUpgr extends CustomUpgrContract<StorageType> {
     factory?: F,
     // initialValue?: number,
     overrides?: Overrides,
-  ): Promise<ICCUpgrDeployResult<StorageType>> {
-    return super.upgrade(
+  ): Promise<StorageUpgrDeployResult> {
+    const upgradeResult = await super.upgrade(
       factory || new StorageUpgr__factory(this.signer),
       // initialValue ? [initialValue] : undefined,
       overrides,
     );
+    return {
+      contract: new StorageUpgr(
+        upgradeResult.contract.proxyAddress,
+        upgradeResult.contract.logicAddress,
+        this.signer,
+      ),
+      receipt: upgradeResult.receipt,
+    };
   }
 
   //* Custom contract functions
@@ -288,7 +305,7 @@ export default class StorageUpgr extends CustomUpgrContract<StorageType> {
   }
 }
 
-export interface IStorageUpgrDeployResult
-  extends Omit<ICCUpgrDeployResult<StorageType>, "contract"> {
+export interface StorageUpgrDeployResult
+  extends Omit<CCUpgrDeployResult<StorageType>, "contract"> {
   contract: StorageUpgr;
 }

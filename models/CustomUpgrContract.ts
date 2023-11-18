@@ -14,7 +14,7 @@ import {
   EventLog,
 } from "ethers";
 import { upgrades } from "hardhat";
-import CustomContract, { ICCDeployResult } from "models/CustomContract";
+import CustomContract, { CCDeployResult } from "models/CustomContract";
 import {
   ERC1967Proxy,
   ERC1967Proxy__factory,
@@ -327,6 +327,6 @@ export type CBaseContract =
   | (BaseContract & UUPSUpgradeable);
 
 export interface ICCUpgrDeployResult<C extends CBaseContract = CBaseContract>
-  extends Omit<ICCDeployResult<C>, "contract"> {
+  extends Omit<CCDeployResult<C>, "contract"> {
   contract: CustomUpgrContract<C>;
 }

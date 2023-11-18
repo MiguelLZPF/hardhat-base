@@ -67,7 +67,7 @@ export default class CustomContract<C extends CBaseContract> {
     signer?: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>>;
+  ): Promise<CCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
     C extends CBaseContract = CBaseContract,
@@ -77,7 +77,7 @@ export default class CustomContract<C extends CBaseContract> {
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>>;
+  ): Promise<CCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
     C extends CBaseContract = CBaseContract,
@@ -87,7 +87,7 @@ export default class CustomContract<C extends CBaseContract> {
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
     overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>> {
+  ): Promise<CCDeployResult<C>> {
     let contract: CBaseContract;
     if (factoryOrAbi instanceof ContractFactory) {
       const args = signerOrArgs as ContractMethodArgs<any[]>;
@@ -236,7 +236,7 @@ export type CBaseContract =
     } & Omit<BaseContract, keyof BaseContract>)
   | BaseContract;
 
-export interface ICCDeployResult<C extends CBaseContract = CBaseContract> {
+export interface CCDeployResult<C extends CBaseContract = CBaseContract> {
   contract: CustomContract<C>;
   receipt: ContractTransactionReceipt | TransactionReceipt;
 }

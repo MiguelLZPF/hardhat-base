@@ -11,14 +11,19 @@ import {
 } from "ethers";
 import { BLOCKCHAIN, DEPLOY } from "configuration";
 import { readFileSync, writeFileSync } from "fs";
+import { timeStamp } from "console";
 
 // hash(chainId, ContractName, tag) --> Deployment
 type Deployments = Map<string, Deployment>;
+export interface LogicHistory {
+  timestamp: Date;
+  logic: string;
+}
 
 export default class Deployment {
   name: ContractName;
   address: string;
-  timestamp: Date | string | number;
+  timestamp: Date;
   txHash: string;
   blockHash: string;
   chainId: BigInt;
@@ -27,13 +32,13 @@ export default class Deployment {
 
   // Ugradeable deployment
   upgradeable: boolean;
-  private _logic?: string;
+  private _logic: LogicHistory[] = [];
 
   constructor(deployment: Deployment);
   constructor(
     name: ContractName,
     address: string,
-    timestamp: Date | string | number,
+    timestamp: Date | number,
     txHash: string,
     blockHash: string,
     chainId: BigInt,
@@ -44,7 +49,7 @@ export default class Deployment {
   constructor(
     deploymentOrName: ContractName | Deployment,
     address?: string,
-    timestamp?: Date | string | number,
+    timestamp?: Date | number,
     txHash?: string,
     blockHash?: string,
     chainId?: BigInt,
@@ -56,8 +61,16 @@ export default class Deployment {
       (deploymentOrName as ContractName) ||
       (deploymentOrName as Deployment).name;
     this.address = address || (deploymentOrName as Deployment).address;
-    this._logic = logic || (deploymentOrName as Deployment)._logic;
-    this.timestamp = timestamp || (deploymentOrName as Deployment).timestamp;
+    this.timestamp =
+      typeof timestamp === "number"
+        ? new Date(timestamp * 1000)
+        : timestamp || (deploymentOrName as Deployment).timestamp;
+    this._logic = logic
+      ? new Array<LogicHistory>({
+          timestamp: this.timestamp,
+          logic: logic,
+        })
+      : (deploymentOrName as Deployment)._logic;
     this.txHash = txHash || (deploymentOrName as Deployment).txHash;
     this.blockHash = blockHash || (deploymentOrName as Deployment).blockHash;
     this.chainId = chainId || (deploymentOrName as Deployment).chainId;
@@ -111,7 +124,7 @@ export default class Deployment {
         `❌ 🔎 Could not find Deployment for network: ${chainId}, ContractName: ${name} and Tag: ${tag}`,
       );
     }
-    new Deployment(deployment);
+    return new Deployment(deployment);
   }
   static async readDeployments(path: string = DEPLOY.deploymentsPath) {
     Deployment.validatePath(path);
@@ -180,6 +193,13 @@ export default class Deployment {
       throw new Error(`❌ 📝 Couldn't write deployment to ${path}`);
     }
   }
+  updateLogic(logic: string, timestamp: Date | number) {
+    this._logic.push({
+      logic: logic,
+      timestamp:
+        typeof timestamp === "number" ? new Date(timestamp * 1000) : timestamp,
+    });
+  }
   //* Getters
   get transactionHash() {
     return this.txHash;
@@ -196,11 +216,17 @@ export default class Deployment {
   }
   get logic() {
     this._checkUpgradeable();
-    return this._logic;
+    return this._logic[this._logic.length - 1].logic;
   }
   get implementation() {
+    return this.logic;
+  }
+  get logicHistory() {
     this._checkUpgradeable();
     return this._logic;
+  }
+  get implementationHistory() {
+    return this.logicHistory;
   }
   async getTransaction(provider: Provider | undefined = this.provider) {
     provider = this._checkProvider(provider);
