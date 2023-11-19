@@ -9,7 +9,6 @@ import {
 import {
   AccessControlEnumerable,
   ERC1967Proxy,
-  OwnableUpgradeable,
   StorageUpgr as StorageBase,
   StorageUpgr__factory,
 } from "typechain-types";
@@ -75,7 +74,7 @@ export default class StorageUpgr extends CustomUpgrContract<StorageType> {
   ): Promise<StorageUpgrDeployResult> {
     const deployResult = await super.deployUpgradeable<
       StorageUpgr__factory,
-      StorageType & OwnableUpgradeable
+      StorageType
     >(
       new StorageUpgr__factory(signer),
       signer,

@@ -13,89 +13,79 @@ import {
   SigningKey,
 } from "ethers";
 import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
+import { deploy, upgrade } from "scripts/deploy";
 import {
-  changeLogic,
-  deploy,
-  deployUpgradeable,
-  upgrade,
-} from "scripts/deploy";
-import { setGlobalHRE } from "scripts/utils";
-import {
-  ICallContract,
-  IChangeLogic,
-  IDeploy,
-  IGenerateWallets,
-  IGetMnemonic,
-  IGetWalletInfo,
-  ISignTransaction,
-  ISignerInformation,
-  IUpgrade,
+  CallContract,
+  ChangeLogic,
+  Deploy,
+  GenerateWallets,
+  GetMnemonic,
+  GetWalletInfo,
+  SignTransaction,
+  SignerInformation,
+  Upgrade,
 } from "models/Tasks";
 import JSON5 from "json5";
-import {
-  IDeployReturn,
-  IUpgrDeployReturn,
-  IUpgradeDeployment,
-} from "models/Deploy";
 import CustomWallet from "models/Wallet";
 import Environment, { networkNameToId } from "models/Configuration";
+import Deployment from "models/Deployment";
 
 //* TASKS
-// subtask("create-signer", "Creates new signer from given params")
-//   // Signer params
-//   .addOptionalParam(
-//     "relativePath",
-//     "Path relative to KEYSTORE.root to store the wallets",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "password",
-//     "Password to decrypt the wallet",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "privateKey",
-//     "A private key in hexadecimal can be used to sign",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPhrase",
-//     "Mnemonic phrase to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPath",
-//     "Mnemonic path to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .setAction(async (args: ISignerInformation, hre) => {
-//     const { gProvider } = await setGlobalHRE(hre);
-//     let wallet: CustomWallet | HDNodeWallet | undefined;
-//     if (args.privateKey) {
-//       wallet = new CustomWallet(args.privateKey, gProvider);
-//     } else if (args.mnemonicPhrase) {
-//       wallet = CustomWallet.fromPhrase(
-//         args.mnemonicPhrase,
-//         gProvider,
-//         args.mnemonicPath,
-//       );
-//     } else if (args.relativePath) {
-//       wallet = CustomWallet.fromEncryptedJsonSync(
-//         args.relativePath,
-//         args.password,
-//       );
-//     } else {
-//       throw new Error(
-//         "❌  Cannot get a wallet from parameters, needed private key or mnemonic or path",
-//       );
-//     }
-//     return wallet;
-//   });
+subtask("create-signer", "Creates new signer from given params")
+  // Signer params
+  .addOptionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root to store the wallets",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "privateKey",
+    "A private key in hexadecimal can be used to sign",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .setAction(async (args: SignerInformation, hre) => {
+    const { provider } = new Environment(hre);
+    let wallet: CustomWallet | HDNodeWallet | undefined;
+    if (args.privateKey) {
+      wallet = new CustomWallet(args.privateKey, provider);
+    } else if (args.mnemonicPhrase) {
+      wallet = CustomWallet.fromPhrase(
+        args.mnemonicPhrase,
+        provider,
+        args.mnemonicPath,
+      );
+    } else if (args.relativePath) {
+      wallet = CustomWallet.fromEncryptedJsonSync(
+        args.relativePath,
+        args.password,
+      );
+    } else {
+      throw new Error(
+        "❌  Cannot get a wallet from parameters, needed private key or mnemonic or path",
+      );
+    }
+    return wallet;
+  });
 
 // task("generate-wallets", "Generates Encryped JSON persistent wallets")
 //   .addPositionalParam(
@@ -265,128 +255,99 @@ import Environment, { networkNameToId } from "models/Configuration";
 //     `);
 //   });
 
-// // DEPLOYMENTS
-// task("deploy", "Deploy smart contracts on '--network'")
-//   .addFlag("upgradeable", "Deploy as upgradeable")
-//   .addPositionalParam(
-//     "contractName",
-//     "Name of the contract to deploy (main use: get factory)",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "proxyAdmin",
-//     "(Optional) [First found in deployments file] Address of a deloyed Proxy Admin. Only if --upgradeable deployment",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "contractArgs",
-//     "(Optional) [undefined] Contract initialize function's arguments if any",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "tag",
-//     "(Optional) [undefined] string to include metadata or anything related with a deployment",
-//     undefined,
-//     types.string,
-//   )
-//   .addFlag(
-//     "initialize",
-//     "If upgradeable deployment, choose weather to call the initialize function or not to",
-//   )
-//   .addFlag("noCompile", "Do not compile contracts before deploy")
-//   .addOptionalParam(
-//     "txValue",
-//     "Contract creation transaction value if any",
-//     undefined,
-//     types.int,
-//   )
-//   // Signer params
-//   .addOptionalParam(
-//     "relativePath",
-//     "Path relative to KEYSTORE.root to store the wallets",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "password",
-//     "Password to decrypt the wallet",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "privateKey",
-//     "A private key in hexadecimal can be used to sign",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPhrase",
-//     "Mnemonic phrase to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPath",
-//     "Mnemonic path to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .setAction(async (args: IDeploy, hre) => {
-//     await setGlobalHRE(hre);
-//     if (!args.noCompile) {
-//       await hre.run("compile");
-//     }
-//     const wallet = (await hre.run("create-signer", {
-//       relativePath: args.relativePath,
-//       password: args.password,
-//       privateKey: args.privateKey,
-//       mnemonicPhrase: args.mnemonicPhrase,
-//       mnemonicPath: args.mnemonicPath,
-//     } as ISignerInformation)) as Wallet;
-//     let result: IDeployReturn<Contract> | IUpgrDeployReturn<Contract>;
-//     if (args.upgradeable) {
-//       result = await deployUpgradeable(
-//         args.contractName,
-//         wallet,
-//         args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
-//         args.tag,
-//         { value: args.txValue, ...GAS_OPT.max },
-//         args.proxyAdmin,
-//         args.initialize || false,
-//         true,
-//       );
-//     } else {
-//       result = await deploy(
-//         args.contractName,
-//         wallet,
-//         args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
-//         args.tag,
-//         {
-//           ...GAS_OPT.max,
-//           value: args.txValue,
-//         },
-//         true,
-//       );
-//     }
-//     //* Print Result on screen
-//     console.info(
-//       "\n✅ 🎉 Contract deployed successfully! Contract Information:",
-//       `\n  - Contract Name (id within this project): ${args.contractName}`,
-//       `\n  - Logic Address (the only one if regular deployment): ${
-//         (result.deployment as IUpgradeDeployment).logic
-//       }`,
-//       `\n  - Proxy Address (only if upgradeable deployment): ${
-//         (result.deployment as IUpgradeDeployment).proxy
-//       }`,
-//       `\n  - Admin or Deployer: ${wallet.address}`,
-//       `\n  - Deploy Timestamp: ${result.deployment.deployTimestamp}`,
-//       `\n  - Bytecode Hash: ${result.deployment.byteCodeHash}`,
-//       `\n  - Tag: ${args.tag}`,
-//     );
-//   });
+// DEPLOYMENTS
+task("deploy", "Deploy smart contracts on '--network'")
+  .addPositionalParam(
+    "contractName",
+    "Name of the contract to deploy (main use: get factory)",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "contractArgs",
+    "(Optional) [undefined] Contract initialize function's arguments if any",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "tag",
+    "(Optional) [undefined] string to include metadata or anything related with a deployment",
+    undefined,
+    types.string,
+  )
+  .addFlag("noCompile", "Do not compile contracts before deploy")
+  .addOptionalParam(
+    "txValue",
+    "Contract creation transaction value if any",
+    undefined,
+    types.int,
+  )
+  // Signer params
+  .addOptionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root to store the wallets",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "privateKey",
+    "A private key in hexadecimal can be used to sign",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .setAction(async (args: Deploy, hre) => {
+    const env = new Environment(hre);
+    if (!args.noCompile) {
+      await hre.run("compile");
+    }
+    const deployer = (await hre.run("create-signer", {
+      relativePath: args.relativePath,
+      password: args.password,
+      privateKey: args.privateKey,
+      mnemonicPhrase: args.mnemonicPhrase,
+      mnemonicPath: args.mnemonicPath,
+    } as SignerInformation)) as CustomWallet | HDNodeWallet;
+    const result = await deploy(
+      args.contractName,
+      deployer,
+      args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
+      {
+        ...GAS_OPT.max,
+        value: args.txValue,
+      },
+      true,
+      args.tag,
+    );
+    //* Print Result on screen
+    console.info(
+      "\n✅ 🎉 Contract deployed successfully! Contract Information:",
+      `\n  - Contract Name (id within this project): ${result.name}`,
+      `\n  - Contract Address (proxy address if upgradeable deployment): ${result.address}`,
+      `\n  - Logic | Implementation Address (only if upgradeable deployment): ${result.logic}`,
+      `\n  - Admin or Deployer: ${deployer.address}`,
+      `\n  - Deploy Timestamp: ${result.timestamp}`,
+      `\n  - Bytecode Hash: ${await result.codeHash}`,
+      `\n  - Tag: ${result.tag}`,
+    );
+  });
 
 // task("upgrade", "Upgrade smart contracts on '--network'")
 //   .addPositionalParam(

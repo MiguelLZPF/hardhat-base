@@ -11,7 +11,6 @@ import {
 } from "ethers";
 import { BLOCKCHAIN, DEPLOY } from "configuration";
 import { readFileSync, writeFileSync } from "fs";
-import { timeStamp } from "console";
 
 // hash(chainId, ContractName, tag) --> Deployment
 type Deployments = Map<string, Deployment>;
@@ -27,6 +26,7 @@ export default class Deployment {
   txHash: string;
   blockHash: string;
   chainId: BigInt;
+  private _codeHash?: string;
   tag: string;
   provider?: Provider;
 
@@ -42,6 +42,7 @@ export default class Deployment {
     txHash: string,
     blockHash: string,
     chainId: BigInt,
+    codeHash?: string,
     tag?: string,
     provider?: Provider,
     logic?: string,
@@ -53,6 +54,7 @@ export default class Deployment {
     txHash?: string,
     blockHash?: string,
     chainId?: BigInt,
+    codeHash?: string,
     tag?: string,
     provider?: Provider,
     logic?: string,
@@ -74,6 +76,7 @@ export default class Deployment {
     this.txHash = txHash || (deploymentOrName as Deployment).txHash;
     this.blockHash = blockHash || (deploymentOrName as Deployment).blockHash;
     this.chainId = chainId || (deploymentOrName as Deployment).chainId;
+    this._codeHash = codeHash || (deploymentOrName as Deployment)._codeHash;
     this.tag = tag || (deploymentOrName as Deployment).tag || "untagged";
     this.provider = provider || (deploymentOrName as Deployment).provider;
     // Set upgradeable flag based on logic
@@ -104,6 +107,9 @@ export default class Deployment {
       transaction.hash,
       block.hash || receipt.blockHash,
       ENV.network.chainId,
+      await Deployment.calculateCodeHash(
+        (logic || address || receipt.contractAddress)!,
+      ),
       tag,
       ENV.provider,
       logic,
@@ -148,6 +154,16 @@ export default class Deployment {
     } catch (e) {
       return false;
     }
+  }
+  static async calculateCodeHash(
+    address: string,
+    provider: Provider = ENV.provider,
+  ) {
+    const code = await provider.getCode(address);
+    if (!code) {
+      throw new Error(`❌ 🔎 code cannot be found for ${address}`);
+    }
+    return keccak256(code);
   }
   static calculateKeyHash(
     chainId?: BigInt,
@@ -240,12 +256,22 @@ export default class Deployment {
     provider = this._checkProvider(provider);
     return provider.getTransactionReceipt(this.txHash);
   }
+  async codeHash() {
+    return this._codeHash || (await this._calculateCodeHash());
+  }
   //* Private
   private _checkProvider(provider: Provider | undefined = this.provider) {
     if (!provider) {
       throw new Error(`❌ Provider must be set to perform this operation`);
     }
     return provider;
+  }
+  private async _calculateCodeHash() {
+    this._codeHash = await Deployment.calculateCodeHash(
+      this.logic || this.address,
+      this.provider,
+    );
+    return this._codeHash;
   }
   private _calculateKeyHash(
     chainId: BigInt = this.chainId,
