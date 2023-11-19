@@ -10,8 +10,6 @@ export type { AccessControlUpgradeable } from "./@openzeppelin/contracts-upgrade
 export { AccessControlUpgradeable__factory } from "./factories/@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable__factory";
 export type { AccessControlEnumerableUpgradeable } from "./@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable";
 export { AccessControlEnumerableUpgradeable__factory } from "./factories/@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable__factory";
-export type { OwnableUpgradeable } from "./@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable";
-export { OwnableUpgradeable__factory } from "./factories/@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable__factory";
 export type { Initializable } from "./@openzeppelin/contracts-upgradeable/proxy/utils/Initializable";
 export { Initializable__factory } from "./factories/@openzeppelin/contracts-upgradeable/proxy/utils/Initializable__factory";
 export type { UUPSUpgradeable } from "./@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable";
@@ -28,12 +26,8 @@ export type { IAccessControlEnumerable } from "./@openzeppelin/contracts/access/
 export { IAccessControlEnumerable__factory } from "./factories/@openzeppelin/contracts/access/extensions/IAccessControlEnumerable__factory";
 export type { IAccessControl } from "./@openzeppelin/contracts/access/IAccessControl";
 export { IAccessControl__factory } from "./factories/@openzeppelin/contracts/access/IAccessControl__factory";
-export type { Ownable } from "./@openzeppelin/contracts/access/Ownable";
-export { Ownable__factory } from "./factories/@openzeppelin/contracts/access/Ownable__factory";
 export type { IERC1822Proxiable } from "./@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable";
 export { IERC1822Proxiable__factory } from "./factories/@openzeppelin/contracts/interfaces/draft-IERC1822.sol/IERC1822Proxiable__factory";
-export type { IERC1967 } from "./@openzeppelin/contracts/interfaces/IERC1967";
-export { IERC1967__factory } from "./factories/@openzeppelin/contracts/interfaces/IERC1967__factory";
 export type { IBeacon } from "./@openzeppelin/contracts/proxy/beacon/IBeacon";
 export { IBeacon__factory } from "./factories/@openzeppelin/contracts/proxy/beacon/IBeacon__factory";
 export type { ERC1967Proxy } from "./@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy";
@@ -42,12 +36,6 @@ export type { ERC1967Utils } from "./@openzeppelin/contracts/proxy/ERC1967/ERC19
 export { ERC1967Utils__factory } from "./factories/@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils__factory";
 export type { Proxy } from "./@openzeppelin/contracts/proxy/Proxy";
 export { Proxy__factory } from "./factories/@openzeppelin/contracts/proxy/Proxy__factory";
-export type { ProxyAdmin } from "./@openzeppelin/contracts/proxy/transparent/ProxyAdmin";
-export { ProxyAdmin__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/ProxyAdmin__factory";
-export type { ITransparentUpgradeableProxy } from "./@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy";
-export { ITransparentUpgradeableProxy__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy__factory";
-export type { TransparentUpgradeableProxy } from "./@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy";
-export { TransparentUpgradeableProxy__factory } from "./factories/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy__factory";
 export type { Address } from "./@openzeppelin/contracts/utils/Address";
 export { Address__factory } from "./factories/@openzeppelin/contracts/utils/Address__factory";
 export type { ERC165 } from "./@openzeppelin/contracts/utils/introspection/ERC165";

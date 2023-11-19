@@ -4,4 +4,3 @@
 import type * as extensions from "./extensions";
 export type { extensions };
 export type { AccessControlUpgradeable } from "./AccessControlUpgradeable";
-export type { OwnableUpgradeable } from "./OwnableUpgradeable";
