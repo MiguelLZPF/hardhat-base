@@ -12,7 +12,46 @@ import {
 import { BLOCKCHAIN, DEPLOY } from "configuration";
 import { readFileSync, writeFileSync } from "fs";
 
-//                       NetworkName --> ContractName --> Tag --> Deployment
+/**
+ * Represents deployments of contracts on different networks.
+ * @typedef {Record<string, Record<string, Record<string, Deployment>>>} Deployments
+ * @property {string} NetworkName - The name of the network.
+ * @property {string} ContractName - The name of the contract.
+ * @property {string} Tag - The deployment tag.
+ * @property {Deployment} Deployment - The deployment details.
+ */
+
+/**
+ * Represents stored deployments of contracts on different networks.
+ * @typedef {Record<string, Record<string, Record<string, DeploymentStored>>>} DeploymentsStored
+ * @property {string} NetworkName - The name of the network.
+ * @property {string} ContractName - The name of the contract.
+ * @property {string} Tag - The deployment tag.
+ * @property {DeploymentStored} DeploymentStored - The stored deployment details.
+ */
+
+/**
+ * Represents the properties of a stored deployment.
+ * @interface DeploymentStored
+ * @property {ContractName} name - The name of the contract.
+ * @property {string} tag - The deployment tag.
+ * @property {string} address - The address of the deployment.
+ * @property {string} [logic] - The logic address of the deployment.
+ * @property {LogicHistory[]} [logicHistory] - The history of logic addresses.
+ * @property {Date} timestamp - The timestamp of the deployment.
+ * @property {string} transactionHash - The transaction hash of the deployment.
+ * @property {string} blockHash - The block hash of the deployment.
+ * @property {string} codeHash - The code hash of the deployment.
+ * @property {number} chainId - The chain ID of the deployment.
+ * @property {boolean} upgradeable - Indicates if the deployment is upgradeable.
+ */
+
+/**
+ * Represents the properties of a logic history entry.
+ * @interface LogicHistory
+ * @property {Date} timestamp - The timestamp of the logic history entry.
+ * @property {string} logic - The logic address.
+ */
 type Deployments = Record<string, Record<string, Record<string, Deployment>>>;
 type DeploymentsStored = Record<
   string,
@@ -36,6 +75,11 @@ export interface LogicHistory {
   logic: string;
 }
 
+/**
+ * Represents a deployment of a smart contract on the Ethereum blockchain.
+ * Stores information about the contract's name, address, timestamp, transaction hash, block hash, chain ID, code hash, and other related details.
+ * Provides methods for creating, reading, and writing deployments, as well as retrieving transaction and block information.
+ */
 export default class Deployment {
   name: ContractName;
   address: string;
@@ -100,6 +144,18 @@ export default class Deployment {
     this._logic ? (this.upgradeable = true) : (this.upgradeable = false);
   }
   //* Static
+  /**
+   * Creates a new instance of the `Deployment` class based on a transaction receipt.
+   * Retrieves the transaction and block information associated with the receipt,
+   * and initializes the properties of the new `Deployment` instance.
+   * @param name - The name of the contract.
+   * @param receipt - The transaction receipt.
+   * @param address - The address of the contract (optional).
+   * @param logic - The logic of the contract (optional).
+   * @param tag - The tag of the contract (optional).
+   * @returns A new instance of the `Deployment` class.
+   * @throws Error if the transaction or block information is not found.
+   */
   static async fromReceipt(
     name: ContractName,
     receipt: ContractTransactionReceipt | TransactionReceipt,
@@ -132,6 +188,16 @@ export default class Deployment {
       logic,
     );
   }
+  /**
+   * Creates a new instance of the Deployment class from a JSON file containing deployment information.
+   *
+   * @param path - The path to the JSON file containing the deployment information. Defaults to DEPLOY.deploymentsPath if not provided.
+   * @param chainId - The chain ID of the network. Defaults to ENV.network.chainId if not provided.
+   * @param name - The name of the contract. Defaults to the first contract name in the CONTRACT_NAMES array if not provided.
+   * @param tag - The tag of the deployment. Defaults to "untagged" if not provided.
+   * @returns A new instance of the Deployment class initialized with the deployment information from the JSON file.
+   * @throws An error if the deployment is not found.
+   */
   static async fromJson(
     path: string = DEPLOY.deploymentsPath,
     chainId: BigInt = ENV.network.chainId,
@@ -150,6 +216,12 @@ export default class Deployment {
     }
     return new Deployment(deployment);
   }
+  /**
+   * Reads deployment data from a JSON file and converts it into a structured object.
+   *
+   * @param path - The file path of the JSON file containing the deployment data. Defaults to DEPLOY.deploymentsPath if not provided.
+   * @returns An object containing the deployment data structured by network name, contract name, and tag.
+   */
   static async readDeployments(path: string = DEPLOY.deploymentsPath) {
     Deployment.validatePath(path);
     //* Get deployment
