@@ -1,6 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
-import "hardhat-deploy";
 import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
@@ -28,8 +27,6 @@ import {
 import JSON5 from "json5";
 import CustomWallet from "models/Wallet";
 import Environment, { networkNameToId } from "models/Configuration";
-import Deployment from "models/Deployment";
-
 //* TASKS
 subtask("create-signer", "Creates new signer from given params")
   // Signer params
@@ -70,9 +67,13 @@ subtask("create-signer", "Creates new signer from given params")
       wallet = new CustomWallet(args.privateKey, provider);
     } else if (args.mnemonicPhrase) {
       wallet = CustomWallet.fromPhrase(
-        args.mnemonicPhrase,
+        args.mnemonicPhrase.toLowerCase() === "default"
+          ? undefined
+          : args.mnemonicPhrase,
         provider,
-        args.mnemonicPath,
+        args.mnemonicPhrase.toLowerCase() === "default"
+          ? undefined
+          : args.mnemonicPath,
       );
     } else if (args.relativePath) {
       wallet = CustomWallet.fromEncryptedJsonSync(
@@ -341,10 +342,12 @@ task("deploy", "Deploy smart contracts on '--network'")
       "\n✅ 🎉 Contract deployed successfully! Contract Information:",
       `\n  - Contract Name (id within this project): ${result.name}`,
       `\n  - Contract Address (proxy address if upgradeable deployment): ${result.address}`,
-      `\n  - Logic | Implementation Address (only if upgradeable deployment): ${result.logic}`,
+      result.upgradeable
+        ? `\n  - Logic | Implementation Address (only if upgradeable deployment): ${result.logic}`
+        : "",
       `\n  - Admin or Deployer: ${deployer.address}`,
       `\n  - Deploy Timestamp: ${result.timestamp}`,
-      `\n  - Bytecode Hash: ${await result.codeHash}`,
+      `\n  - Bytecode Hash: ${await result.codeHash()}`,
       `\n  - Tag: ${result.tag}`,
     );
   });
@@ -898,10 +901,6 @@ const config: HardhatUserConfig = {
       },
       evmVersion: BLOCKCHAIN.default.evm,
     },
-  },
-  namedAccounts: {
-    admin: 0,
-    defaultUser: 1,
   },
   networks: {
     hardhat: {

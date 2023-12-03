@@ -13,13 +13,13 @@ import {
   isBytesLike,
   EventLog,
 } from "ethers";
-import { upgrades } from "hardhat";
 import CustomContract, { CCDeployResult } from "models/CustomContract";
 import {
   ERC1967Proxy,
   ERC1967Proxy__factory,
   UUPSUpgradeable,
 } from "typechain-types";
+import { ENV } from "./Configuration";
 
 export default class CustomUpgrContract<
   C extends CBaseContract,
@@ -169,7 +169,7 @@ export default class CustomUpgrContract<
     // Store previous receipt
     const blockBeforeUpgrade = signer.provider.getBlockNumber();
     // Deploy
-    let contract = (await upgrades.deployProxy(factory, args, {
+    let contract = (await ENV.upgrades.deployProxy(factory, args, {
       kind: "uups",
       txOverrides: overrides,
     })) as unknown as C;
@@ -254,10 +254,14 @@ export default class CustomUpgrContract<
     // Store previous receipt
     const blockBeforeUpgrade = this.provider.getBlockNumber();
     // Upgrade
-    let newContract = (await upgrades.upgradeProxy(this.proxyAddress, factory, {
-      kind: "uups",
-      txOverrides: overrides,
-    })) as unknown as C;
+    let newContract = (await ENV.upgrades.upgradeProxy(
+      this.proxyAddress,
+      factory,
+      {
+        kind: "uups",
+        txOverrides: overrides,
+      },
+    )) as unknown as C;
     // Get the Implementation address
     const events = (await newContract.queryFilter(
       newContract.filters.Upgraded(),

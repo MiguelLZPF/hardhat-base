@@ -7,24 +7,27 @@ import {
   SigningKey,
 } from "ethers";
 import { writeFileSync } from "fs";
-import { checkDirectoriesInPath, gProvider } from "scripts/utils";
+import { checkDirectoriesInPath } from "scripts/utils";
+import { ENV } from "./Configuration";
 
 export default class CustomWallet extends Wallet {
   constructor(
     key: string | SigningKey = KEYSTORE.default.privateKey,
-    provider: Provider = gProvider,
+    provider: Provider = ENV.provider,
   ) {
     super(key, provider);
   }
 
-  static override createRandom(provider: Provider = gProvider): HDNodeWallet {
+  static override createRandom(
+    provider: Provider = ENV.provider,
+  ): HDNodeWallet {
     return super.createRandom(provider);
   }
 
   static override fromPhrase(
     phrase: string = KEYSTORE.default.mnemonic.phrase,
-    provider: Provider = gProvider,
-    path: string = KEYSTORE.default.mnemonic.basePath,
+    provider: Provider = ENV.provider,
+    path: string = KEYSTORE.default.mnemonic.path,
   ): HDNodeWallet {
     return HDNodeWallet.fromPhrase(
       phrase.toLowerCase() === "default"
@@ -40,7 +43,7 @@ export default class CustomWallet extends Wallet {
     password: string | Uint8Array = KEYSTORE.default.password,
     progress?: ProgressCallback,
     isAbsolutePath = false,
-    provider = gProvider,
+    provider = ENV.provider,
   ): Promise<CustomWallet | HDNodeWallet> {
     if (!isAbsolutePath) {
       // remove "/"
@@ -59,7 +62,7 @@ export default class CustomWallet extends Wallet {
     json: string,
     password: string | Uint8Array = KEYSTORE.default.password,
     isAbsolutePath = false,
-    provider: Provider = gProvider,
+    provider: Provider = ENV.provider,
   ): CustomWallet | HDNodeWallet {
     if (!isAbsolutePath) {
       // remove "/"

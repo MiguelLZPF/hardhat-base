@@ -12,8 +12,25 @@ import {
 import { BLOCKCHAIN, DEPLOY } from "configuration";
 import { readFileSync, writeFileSync } from "fs";
 
-// hash(chainId, ContractName, tag) --> Deployment
-type Deployments = Map<string, Deployment>;
+//                       NetworkName --> ContractName --> Tag --> Deployment
+type Deployments = Record<string, Record<string, Record<string, Deployment>>>;
+type DeploymentsStored = Record<
+  string,
+  Record<string, Record<string, DeploymentStored>>
+>;
+interface DeploymentStored {
+  name: ContractName;
+  tag: string;
+  address: string;
+  logic?: string;
+  logicHistory?: LogicHistory[];
+  timestamp: Date;
+  transactionHash: string;
+  blockHash: string;
+  codeHash: string;
+  chainId: number;
+  upgradeable: boolean;
+}
 export interface LogicHistory {
   timestamp: Date;
   logic: string;
@@ -117,14 +134,15 @@ export default class Deployment {
   }
   static async fromJson(
     path: string = DEPLOY.deploymentsPath,
-    chainId?: BigInt,
+    chainId: BigInt = ENV.network.chainId,
     name?: ContractName,
-    tag?: string,
+    tag: string = "untagged",
   ) {
-    const keyHash = Deployment.calculateKeyHash(chainId, name, tag);
+    name = (name || CONTRACT_NAMES[0]) as ContractName;
     const deployments = await Deployment.readDeployments(path);
     // Get specific deployment
-    const deployment = deployments.get(keyHash);
+    const deployment =
+      deployments[BLOCKCHAIN.networks.get(chainId)!.name][String(name)][tag];
     if (!deployment) {
       throw new Error(
         `❌ 🔎 Could not find Deployment for network: ${chainId}, ContractName: ${name} and Tag: ${tag}`,
@@ -135,24 +153,117 @@ export default class Deployment {
   static async readDeployments(path: string = DEPLOY.deploymentsPath) {
     Deployment.validatePath(path);
     //* Get deployment
-    let deployments: Deployments = new Map();
+    let deploymentsFromStorage: DeploymentsStored = {};
+    let deployments: Deployments = {};
     try {
-      deployments = JSON.parse(
+      deploymentsFromStorage = JSON.parse(
         readFileSync(path, { encoding: "utf8" }),
-      ) as Deployments;
+      );
     } catch (e) {}
+    // From stored deployments to object deployments
+    await Deployment.forEachDeployment(
+      deploymentsFromStorage,
+      (deployment, networkName, contractName) => {
+        deployment = deployment as DeploymentStored;
+        if (!deployments[networkName]) {
+          deployments[networkName] = {};
+        }
+        if (!deployments[networkName][contractName]) {
+          deployments[networkName][contractName] = {};
+        }
+        deployments[networkName][contractName][deployment.tag] = new Deployment(
+          deployment.name,
+          deployment.address,
+          deployment.timestamp,
+          deployment.transactionHash,
+          deployment.blockHash,
+          BigInt(deployment.chainId),
+          deployment.codeHash,
+          deployment.tag,
+        );
+      },
+    );
     return deployments;
   }
   static async writeDeployments(
     path: string = DEPLOY.deploymentsPath,
-    deployments: Map<string, Deployment>,
+    deployments: Deployments,
   ) {
     Deployment.validatePath(path);
+    let deploymentsToStore: DeploymentsStored = {};
+    // For each network name
+    await Deployment.forEachDeployment(
+      deployments,
+      async (deployment, networkName, contractName) => {
+        deployment = deployment as Deployment;
+        // Get the deployment
+        if (!deploymentsToStore[networkName]) {
+          deploymentsToStore[networkName] = {};
+        }
+        if (!deploymentsToStore[networkName][contractName]) {
+          deploymentsToStore[networkName][contractName] = {};
+        }
+        // Translate to simple JSON Object
+        deploymentsToStore[networkName][contractName][deployment.tag] = {
+          name: deployment.name,
+          tag: deployment.tag,
+          address: deployment.address,
+          logic: deployment._logic
+            ? deployment._logic[deployment._logic.length - 1].logic
+            : undefined,
+          logicHistory: deployment._logic,
+          timestamp: deployment.timestamp,
+          transactionHash: deployment.txHash,
+          blockHash: deployment.blockHash,
+          codeHash: await deployment.codeHash(),
+          chainId: Number(deployment.chainId),
+          upgradeable: deployment.upgradeable,
+        };
+      },
+    );
+
     try {
-      writeFileSync(path, JSON.stringify(deployments), { encoding: "utf8" });
+      writeFileSync(path, JSON.stringify(deploymentsToStore), {
+        encoding: "utf8",
+      });
       return true;
     } catch (e) {
       return false;
+    }
+  }
+  static async forEachDeployment(
+    deployments: Deployments | DeploymentsStored,
+    callback: (
+      deployment: Deployment | DeploymentStored,
+      networkName: string,
+      contractName: string,
+    ) => void,
+  ) {
+    for (const networkName in deployments) {
+      if (Object.prototype.hasOwnProperty.call(deployments, networkName)) {
+        const deploymentsInNetwork = deployments[networkName];
+        // For each contract name in network
+        for (const contractName in deploymentsInNetwork) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              deploymentsInNetwork,
+              contractName,
+            )
+          ) {
+            const deploymentsInName = deploymentsInNetwork[contractName];
+            // For each tag in contract name in network
+            for (const tag in deploymentsInName) {
+              if (
+                Object.prototype.hasOwnProperty.call(deploymentsInName, tag)
+              ) {
+                // Get the deployment
+                const deployment = deploymentsInName[tag];
+                callback(deployment, networkName, contractName);
+              }
+            }
+          }
+        }
+      }
     }
   }
   static async calculateCodeHash(
@@ -164,19 +275,6 @@ export default class Deployment {
       throw new Error(`❌ 🔎 code cannot be found for ${address}`);
     }
     return keccak256(code);
-  }
-  static calculateKeyHash(
-    chainId?: BigInt,
-    name?: ContractName, // CONTRACT_NAMES[0]
-    tag: string = "untagged",
-  ) {
-    return keccak256(
-      JSON.stringify([
-        chainId || BLOCKCHAIN.networks.get(undefined)!.chainId,
-        (name || CONTRACT_NAMES[0]) as ContractName,
-        tag,
-      ]),
-    );
   }
   static validatePath(path: string) {
     //* Add json extension if needed
@@ -191,7 +289,7 @@ export default class Deployment {
       path = `${path}.json`;
     }
     // Path is valid and has an extension
-    if (extension !== "json" || "jsonc") {
+    if (extension !== "json" && extension !== "jsonc") {
       throw new Error(
         `❌ 🗂️ Deployment file must be a JSON file. File extension: ${extension}`,
       );
@@ -200,10 +298,17 @@ export default class Deployment {
   }
   //* Setters
   async toJson(path?: string) {
-    const thisKeyHash = this._calculateKeyHash();
     const deployments = await Deployment.readDeployments(path);
+    // Initialize when needed
+    const thisNetworkName = BLOCKCHAIN.networks.get(this.chainId)!.name;
+    if (!deployments[thisNetworkName]) {
+      deployments[thisNetworkName] = {};
+    }
+    if (!deployments[thisNetworkName][String(this.name)]) {
+      deployments[thisNetworkName][String(this.name)] = {};
+    }
     // Set this new deployment
-    deployments.set(thisKeyHash, this);
+    deployments[thisNetworkName][String(this.name)][this.tag] = this;
     const writed = await Deployment.writeDeployments(path, deployments);
     if (!writed) {
       throw new Error(`❌ 📝 Couldn't write deployment to ${path}`);
@@ -272,13 +377,6 @@ export default class Deployment {
       this.provider,
     );
     return this._codeHash;
-  }
-  private _calculateKeyHash(
-    chainId: BigInt = this.chainId,
-    name: ContractName = this.name,
-    tag: string = this.tag,
-  ) {
-    return Deployment.calculateKeyHash(chainId, name, tag);
   }
   private _checkUpgradeable() {
     if (!this.upgradeable) {

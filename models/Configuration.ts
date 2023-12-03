@@ -1,3 +1,4 @@
+import { HardhatUpgrades } from "@openzeppelin/hardhat-upgrades";
 import { BLOCKCHAIN } from "configuration";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -32,12 +33,14 @@ export default class Environment {
   ethers: HardhatRuntimeEnvironment["ethers"];
   provider: HardhatRuntimeEnvironment["ethers"]["provider"];
   network: Network;
+  upgrades: HardhatUpgrades;
 
   constructor(hre: HardhatRuntimeEnvironment) {
     this.hre = hre;
     this.ethers = hre.ethers;
     this.provider = hre.ethers.provider;
     this.network = Environment.getNetwork(hre.network.config.chainId);
+    this.upgrades = hre.upgrades;
     ENV = this;
   }
 
