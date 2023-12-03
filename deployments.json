@@ -1,24 +1,24 @@
 {
   "hardhat": {
     "Storage": {
-      "TEST1": {
-        "name": "Storage",
-        "tag": "TEST1",
-        "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-        "timestamp": "2023-12-02T15:42:51.000Z",
-        "transactionHash": "0xc58d2d6bfa3cbb5af8f3c89d166d9419ddc0330334f9a3f394e46ee6bd695bb7",
-        "blockHash": "0x7cbe2e5fe27d92ee86c6e997783e3a31a6fe681d8ac6cdad216dc490e8f5ac17",
-        "codeHash": "0xf9d0186424d483947e3b4a254ab8f5c1b63a4dc082df694676590790d9ab75ad",
-        "chainId": 31337,
-        "upgradeable": false
-      },
       "TEST0": {
         "name": "Storage",
         "tag": "TEST0",
         "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-        "timestamp": "2023-12-02T15:44:42.000Z",
+        "timestamp": "2023-12-03T12:49:57.000Z",
         "transactionHash": "0xc58d2d6bfa3cbb5af8f3c89d166d9419ddc0330334f9a3f394e46ee6bd695bb7",
-        "blockHash": "0x41f4bdbea725fd168bc178847d9a183b1eb85612aadcccae7e9232fbaeed7004",
+        "blockHash": "0x8054d89b57fb188ff1faa1c174b9925bd23de112bb29a561eaf65a1f068e2870",
+        "codeHash": "0xf9d0186424d483947e3b4a254ab8f5c1b63a4dc082df694676590790d9ab75ad",
+        "chainId": 31337,
+        "upgradeable": false
+      },
+      "TEST1": {
+        "name": "Storage",
+        "tag": "TEST1",
+        "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+        "timestamp": "2023-12-03T12:50:19.000Z",
+        "transactionHash": "0xc58d2d6bfa3cbb5af8f3c89d166d9419ddc0330334f9a3f394e46ee6bd695bb7",
+        "blockHash": "0xaa10814716d28c6d64a6b4a7e831f1477088e402d85c53c794cb71bb198f90b4",
         "codeHash": "0xf9d0186424d483947e3b4a254ab8f5c1b63a4dc082df694676590790d9ab75ad",
         "chainId": 31337,
         "upgradeable": false
@@ -32,13 +32,31 @@
         "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
         "logicHistory": [
           {
-            "timestamp": "2023-12-02T15:44:59.000Z",
+            "timestamp": "2023-12-03T13:25:33.000Z",
             "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
           }
         ],
-        "timestamp": "2023-12-02T15:44:59.000Z",
-        "transactionHash": "0x3f18d9b4005397d4af1454fc4941596c60ac1dbb082e028397e670184cda5c45",
-        "blockHash": "0x2307b8461e957976cbe4c84114e9920d7c50baf48f4ff2c3d0108217969edb47",
+        "timestamp": "2023-12-03T13:25:33.000Z",
+        "transactionHash": "0x7daf92950ef70b11cb143762cbeb17ef4cbadf6dcf5d512d2fec4319d16cb50e",
+        "blockHash": "0x61fe0e6b381d07eea93524ad1ee2053ff370ec5cf2dc6968453b2018e1e95ead",
+        "codeHash": "0x2792128651025d8b7e0cb49fe27708ed6738e5b23facec1e1f48bcba3dbeae55",
+        "chainId": 31337,
+        "upgradeable": true
+      },
+      "TEST1": {
+        "name": "StorageUpgr",
+        "tag": "TEST1",
+        "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+        "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+        "logicHistory": [
+          {
+            "timestamp": "2023-12-03T13:25:24.000Z",
+            "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
+          }
+        ],
+        "timestamp": "2023-12-03T13:25:24.000Z",
+        "transactionHash": "0x7daf92950ef70b11cb143762cbeb17ef4cbadf6dcf5d512d2fec4319d16cb50e",
+        "blockHash": "0x185e59673e841a7d4faa7984f0e45dae89484c8d246bd03fd6f5e05418f645b1",
         "codeHash": "0x2792128651025d8b7e0cb49fe27708ed6738e5b23facec1e1f48bcba3dbeae55",
         "chainId": 31337,
         "upgradeable": true

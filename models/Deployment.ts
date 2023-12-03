@@ -106,7 +106,7 @@ export default class Deployment {
     codeHash?: string,
     tag?: string,
     provider?: Provider,
-    logic?: string,
+    logic?: string | LogicHistory[],
   );
   constructor(
     deploymentOrName: ContractName | Deployment,
@@ -118,7 +118,7 @@ export default class Deployment {
     codeHash?: string,
     tag?: string,
     provider?: Provider,
-    logic?: string,
+    logic?: string | LogicHistory[],
   ) {
     this.name =
       (deploymentOrName as ContractName) ||
@@ -128,12 +128,17 @@ export default class Deployment {
       typeof timestamp === "number"
         ? new Date(timestamp * 1000)
         : timestamp || (deploymentOrName as Deployment).timestamp;
-    this._logic = logic
-      ? new Array<LogicHistory>({
-          timestamp: this.timestamp,
-          logic: logic,
-        })
-      : (deploymentOrName as Deployment)._logic;
+    if (logic && typeof logic === "string") {
+      this._logic = new Array<LogicHistory>({
+        timestamp: this.timestamp,
+        logic: logic,
+      });
+    } else if (logic) {
+      this._logic = logic as LogicHistory[];
+    } else {
+      this._logic = (deploymentOrName as Deployment)._logic;
+    }
+
     this.txHash = txHash || (deploymentOrName as Deployment).txHash;
     this.blockHash = blockHash || (deploymentOrName as Deployment).blockHash;
     this.chainId = chainId || (deploymentOrName as Deployment).chainId;
@@ -223,81 +228,101 @@ export default class Deployment {
    * @returns An object containing the deployment data structured by network name, contract name, and tag.
    */
   static async readDeployments(path: string = DEPLOY.deploymentsPath) {
+    // Validate the provided path to ensure it is a valid JSON file
     Deployment.validatePath(path);
-    //* Get deployment
-    let deploymentsFromStorage: DeploymentsStored = {};
+
     let deployments: Deployments = {};
+
     try {
-      deploymentsFromStorage = JSON.parse(
-        readFileSync(path, { encoding: "utf8" }),
+      // Read the contents of the JSON file
+      const fileContents = readFileSync(path, { encoding: "utf8" });
+
+      // Parse the JSON data into a JavaScript object
+      const deploymentsFromStorage: DeploymentsStored =
+        JSON.parse(fileContents);
+
+      // Convert stored deployments into instances of the Deployment class
+      await Deployment.forEachDeployment(
+        deploymentsFromStorage,
+        (deployment, networkName, contractName) => {
+          deployment = deployment as DeploymentStored;
+
+          // Structure the deployments by network name, contract name, and tag
+          deployments[networkName] = deployments[networkName] || {};
+          deployments[networkName][contractName] =
+            deployments[networkName][contractName] || {};
+          deployments[networkName][contractName][deployment.tag] =
+            new Deployment(
+              deployment.name,
+              deployment.address,
+              deployment.timestamp,
+              deployment.transactionHash,
+              deployment.blockHash,
+              BigInt(deployment.chainId),
+              deployment.codeHash,
+              deployment.tag,
+              undefined,
+              deployment.logicHistory || deployment.logic,
+            );
+        },
       );
-    } catch (e) {}
-    // From stored deployments to object deployments
-    await Deployment.forEachDeployment(
-      deploymentsFromStorage,
-      (deployment, networkName, contractName) => {
-        deployment = deployment as DeploymentStored;
-        if (!deployments[networkName]) {
-          deployments[networkName] = {};
-        }
-        if (!deployments[networkName][contractName]) {
-          deployments[networkName][contractName] = {};
-        }
-        deployments[networkName][contractName][deployment.tag] = new Deployment(
-          deployment.name,
-          deployment.address,
-          deployment.timestamp,
-          deployment.transactionHash,
-          deployment.blockHash,
-          BigInt(deployment.chainId),
-          deployment.codeHash,
-          deployment.tag,
-        );
-      },
-    );
+    } catch (e) {
+      // Handle any errors that occur during the process
+    }
+
     return deployments;
   }
+  /**
+   * Writes the deployment information to a JSON file.
+   * @param path - The file path where the deployment information will be written. Defaults to DEPLOY.deploymentsPath if not provided.
+   * @param deployments - An object containing the deployment information organized by network, contract, and tag.
+   * @returns A boolean indicating whether the write operation was successful or not.
+   */
   static async writeDeployments(
     path: string = DEPLOY.deploymentsPath,
     deployments: Deployments,
-  ) {
-    Deployment.validatePath(path);
-    let deploymentsToStore: DeploymentsStored = {};
-    // For each network name
-    await Deployment.forEachDeployment(
-      deployments,
-      async (deployment, networkName, contractName) => {
-        deployment = deployment as Deployment;
-        // Get the deployment
-        if (!deploymentsToStore[networkName]) {
-          deploymentsToStore[networkName] = {};
-        }
-        if (!deploymentsToStore[networkName][contractName]) {
-          deploymentsToStore[networkName][contractName] = {};
-        }
-        // Translate to simple JSON Object
-        deploymentsToStore[networkName][contractName][deployment.tag] = {
-          name: deployment.name,
-          tag: deployment.tag,
-          address: deployment.address,
-          logic: deployment._logic
-            ? deployment._logic[deployment._logic.length - 1].logic
-            : undefined,
-          logicHistory: deployment._logic,
-          timestamp: deployment.timestamp,
-          transactionHash: deployment.txHash,
-          blockHash: deployment.blockHash,
-          codeHash: await deployment.codeHash(),
-          chainId: Number(deployment.chainId),
-          upgradeable: deployment.upgradeable,
-        };
-      },
-    );
-
+  ): Promise<boolean> {
     try {
+      // Validate the file path to ensure it is a valid JSON file
+      Deployment.validatePath(path);
+
+      // Initialize an empty object to store the simplified deployment information
+      const deploymentsToStore: DeploymentsStored = {};
+
+      // Iterate over each network, contract, and tag in the deployments object
+      await Deployment.forEachDeployment(
+        deployments,
+        async (deployment, networkName, contractName) => {
+          deployment = deployment as Deployment;
+
+          // Get the deployment
+          deploymentsToStore[networkName] =
+            deploymentsToStore[networkName] || {};
+          deploymentsToStore[networkName][contractName] =
+            deploymentsToStore[networkName][contractName] || {};
+
+          // Translate to simple JSON Object
+          deploymentsToStore[networkName][contractName][deployment.tag] = {
+            name: deployment.name,
+            tag: deployment.tag,
+            address: deployment.address,
+            logic: deployment._logic?.[deployment._logic.length - 1]?.logic,
+            logicHistory: deployment._logic,
+            timestamp: deployment.timestamp,
+            transactionHash: deployment.txHash,
+            blockHash: deployment.blockHash,
+            codeHash: await deployment.codeHash(),
+            chainId: Number(deployment.chainId),
+            upgradeable: deployment.upgradeable,
+          };
+        },
+      );
+
+      // Write the deploymentsToStore object to the specified file path as a JSON string
       writeFileSync(path, JSON.stringify(deploymentsToStore), {
         encoding: "utf8",
       });
+
       return true;
     } catch (e) {
       return false;
