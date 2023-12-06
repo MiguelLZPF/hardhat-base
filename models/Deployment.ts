@@ -328,6 +328,11 @@ export default class Deployment {
       return false;
     }
   }
+  /**
+   * Iterates over a nested object structure representing deployments and calls a callback function for each deployment.
+   * @param deployments - A nested object structure representing deployments.
+   * @param callback - The callback function to be called for each deployment.
+   */
   static async forEachDeployment(
     deployments: Deployments | DeploymentsStored,
     callback: (
@@ -339,7 +344,6 @@ export default class Deployment {
     for (const networkName in deployments) {
       if (Object.prototype.hasOwnProperty.call(deployments, networkName)) {
         const deploymentsInNetwork = deployments[networkName];
-        // For each contract name in network
         for (const contractName in deploymentsInNetwork) {
           if (
             Object.prototype.hasOwnProperty.call(
@@ -348,12 +352,10 @@ export default class Deployment {
             )
           ) {
             const deploymentsInName = deploymentsInNetwork[contractName];
-            // For each tag in contract name in network
             for (const tag in deploymentsInName) {
               if (
                 Object.prototype.hasOwnProperty.call(deploymentsInName, tag)
               ) {
-                // Get the deployment
                 const deployment = deploymentsInName[tag];
                 callback(deployment, networkName, contractName);
               }
@@ -363,35 +365,50 @@ export default class Deployment {
       }
     }
   }
+  /**
+   * Calculates the code hash of a given contract address using the keccak256 hash function.
+   * @param address - The contract address for which to calculate the code hash.
+   * @param provider - (optional) The provider object to use for retrieving the contract code.
+   *                    If not provided, the default provider from the ENV object will be used.
+   * @returns The calculated code hash of the contract at the given address.
+   * @throws Error if the code cannot be found for the given address.
+   */
   static async calculateCodeHash(
     address: string,
     provider: Provider = ENV.provider,
-  ) {
+  ): Promise<string> {
     const code = await provider.getCode(address);
     if (!code) {
       throw new Error(`❌ 🔎 code cannot be found for ${address}`);
     }
     return keccak256(code);
   }
-  static validatePath(path: string) {
-    //* Add json extension if needed
-    const [mainPath, extension, ...other] = path.split(".");
-    if (other && other.length > 0) {
+  /**
+   * Validates the path of a deployment file.
+   * @param path - The path of the deployment file.
+   * @throws {Error} - If the path is invalid or the file extension is not ".json" or ".jsonc".
+   */
+  static validatePath(path: string): void {
+    const [mainPath, extension] = path.split(".");
+
+    // Check for additional parts in the path
+    if (extension === undefined || extension.includes(".")) {
       throw new Error(
         `❌ 🗂️ Invalid deployments path. Use of invalid character "." ${path}`,
       );
     }
-    // Path is valid
+
+    // Add ".json" extension if missing
     if (!extension) {
-      path = `${path}.json`;
+      path += ".json";
     }
-    // Path is valid and has an extension
+
+    // Check if the file extension is valid
     if (extension !== "json" && extension !== "jsonc") {
       throw new Error(
         `❌ 🗂️ Deployment file must be a JSON file. File extension: ${extension}`,
       );
     }
-    // Path is valid, has an extension and is valid extension
   }
   //* Setters
   async toJson(path?: string) {
