@@ -28,6 +28,11 @@ import JSON5 from "json5";
 import CustomWallet from "models/Wallet";
 import Environment, { networkNameToId } from "models/Configuration";
 //* TASKS
+
+import { hello } from "tasks/example";
+
+hello;
+
 subtask("create-signer", "Creates new signer from given params")
   // Signer params
   .addOptionalParam(
