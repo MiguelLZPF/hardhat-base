@@ -12,3 +12,6 @@ keystore
 
 # Ganache
 .ganache-db
+
+# Open Zeppelin
+.openzeppelin*

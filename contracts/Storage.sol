@@ -22,7 +22,7 @@ contract Storage is IStorage, IPayableOwner, AccessControlEnumerable {
   }
 
   function store(uint256 num) public {
-    number = num;
+    number = num + 2;
     emit Stored(num);
   }
 

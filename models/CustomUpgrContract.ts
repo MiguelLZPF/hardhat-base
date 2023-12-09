@@ -172,11 +172,12 @@ export default class CustomUpgrContract<
     let contract = (await ENV.upgrades.deployProxy(factory, args, {
       kind: "uups",
       txOverrides: overrides,
+      redeployImplementation: "onchange",
     })) as unknown as C;
     // Get the Implementation address
     const events = (await contract.queryFilter(
       contract.filters.Upgraded(),
-      await blockBeforeUpgrade,
+      (await blockBeforeUpgrade) + 1,
       await signer.provider.getBlockNumber(),
     )) as EventLog[];
     const implementation = events[0].args.implementation;
@@ -253,6 +254,21 @@ export default class CustomUpgrContract<
     //* Function Implementation
     // Store previous receipt
     const blockBeforeUpgrade = this.provider.getBlockNumber();
+    // Check if contract have changed
+    const newLogic = await ENV.upgrades.prepareUpgrade(
+      this.proxyAddress,
+      factory,
+      {
+        kind: "uups",
+        txOverrides: overrides,
+        redeployImplementation: "onchange",
+      },
+    );
+    if (newLogic === this.logicAddress) {
+      throw new Error(
+        `❌  ⛓️  Contract ${this.proxyAddress} already upgraded to ${this.logicAddress}`,
+      );
+    }
     // Upgrade
     let newContract = (await ENV.upgrades.upgradeProxy(
       this.proxyAddress,
@@ -260,12 +276,13 @@ export default class CustomUpgrContract<
       {
         kind: "uups",
         txOverrides: overrides,
+        redeployImplementation: "onchange",
       },
     )) as unknown as C;
     // Get the Implementation address
     const events = (await newContract.queryFilter(
       newContract.filters.Upgraded(),
-      await blockBeforeUpgrade,
+      (await blockBeforeUpgrade) + 1,
       await this.provider.getBlockNumber(),
     )) as EventLog[];
     const implementation = events[0].args.implementation;

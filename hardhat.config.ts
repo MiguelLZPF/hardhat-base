@@ -4,31 +4,15 @@ import "hardhat-contract-sizer";
 // import { ethers } from "hardhat"; //! Cannot be imported here or any file that is imported here because it is generated here
 import { subtask, task, types } from "hardhat/config";
 import { HardhatRuntimeEnvironment, HardhatUserConfig } from "hardhat/types";
-import {
-  Wallet,
-  Contract,
-  ContractTransactionResponse,
-  HDNodeWallet,
-  SigningKey,
-} from "ethers";
+import { HDNodeWallet } from "ethers";
 import { BLOCKCHAIN, GAS_OPT, KEYSTORE } from "configuration";
 import { deploy, upgrade } from "scripts/deploy";
-import {
-  CallContract,
-  ChangeLogic,
-  Deploy,
-  GenerateWallets,
-  GetMnemonic,
-  GetWalletInfo,
-  SignTransaction,
-  SignerInformation,
-  Upgrade,
-} from "models/Tasks";
+import { Deploy, SignerInformation, Upgrade } from "models/Tasks";
 import JSON5 from "json5";
 import CustomWallet from "models/Wallet";
 import Environment, { networkNameToId } from "models/Configuration";
+import { delay } from "scripts/utils";
 //* TASKS
-
 import { hello } from "tasks/example";
 
 hello;
@@ -281,7 +265,6 @@ task("deploy", "Deploy smart contracts on '--network'")
     undefined,
     types.string,
   )
-  .addFlag("noCompile", "Do not compile contracts before deploy")
   .addOptionalParam(
     "txValue",
     "Contract creation transaction value if any",
@@ -320,10 +303,10 @@ task("deploy", "Deploy smart contracts on '--network'")
     types.string,
   )
   .setAction(async (args: Deploy, hre) => {
+    console.log(
+      "\x1b[33m 🔄 WARNING: Remember to compile contracts if needed\x1b[0m",
+    );
     const env = new Environment(hre);
-    if (!args.noCompile) {
-      await hre.run("compile");
-    }
     const deployer = (await hre.run("create-signer", {
       relativePath: args.relativePath,
       password: args.password,
@@ -357,111 +340,112 @@ task("deploy", "Deploy smart contracts on '--network'")
     );
   });
 
-// task("upgrade", "Upgrade smart contracts on '--network'")
-//   .addPositionalParam(
-//     "contractName",
-//     "Name of the contract to upgrade (main use: get factory)",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "proxy",
-//     "(Optional) [undefined] Address of the TUP proxy",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "proxyAdmin",
-//     "(Optional) [CONTRACTS] Address of a deloyed Proxy Admin",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "contractArgs",
-//     "(Optional) [undefined] Contract initialize function's arguments if any",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "tag",
-//     "(Optional) [undefined] string to include metadata or anything related with a deployment",
-//     undefined,
-//     types.string,
-//   )
-//   .addFlag(
-//     "initialize",
-//     "If upgradeable deployment, choose weather to call the initialize function or not to",
-//   )
-//   .addFlag("noCompile", "Do not compile contracts before upgrade")
-//   // Signer params
-//   .addOptionalParam(
-//     "relativePath",
-//     "Path relative to KEYSTORE.root to store the wallets",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "password",
-//     "Password to decrypt the wallet",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "privateKey",
-//     "A private key in hexadecimal can be used to sign",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPhrase",
-//     "Mnemonic phrase to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .addOptionalParam(
-//     "mnemonicPath",
-//     "Mnemonic path to generate wallet from",
-//     undefined,
-//     types.string,
-//   )
-//   .setAction(async (args: IUpgrade, hre) => {
-//     await setGlobalHRE(hre);
-//     if (!args.noCompile) {
-//       await hre.run("compile");
-//     }
-//     const wallet = await hre.run("create-signer", {
-//       relativePath: args.relativePath,
-//       password: args.password,
-//       privateKey: args.privateKey,
-//       mnemonicPhrase: args.mnemonicPhrase,
-//       mnemonicPath: args.mnemonicPath,
-//     } as ISignerInformation);
-//     const result = await upgrade(
-//       args.contractName,
-//       wallet,
-//       args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
-//       args.proxy,
-//       GAS_OPT.max,
-//       args.proxyAdmin,
-//       args.initialize || false,
-//       true,
-//     );
-//     //* Print Result on screen
-//     console.info(
-//       "✅ 🎉 Upgradeable Contract upgraded succesfully! Updated information:",
-//       `\n  - Contract Name (id within this project): ${args.contractName}`,
-//       `\n  - Logic Address (the only one if regular deployment): ${
-//         (result.deployment as IUpgradeDeployment).logic
-//       }`,
-//       `\n  - Proxy Address (only if upgradeable deployment): ${
-//         (result.deployment as IUpgradeDeployment).proxy
-//       }`,
-//       `\n  - Admin or Deployer: ${wallet.address}`,
-//       `\n  - Deploy Timestamp: ${result.deployment.deployTimestamp}`,
-//       `\n  - Bytecode Hash: ${result.deployment.byteCodeHash}`,
-//       `\n  - Tag: ${args.tag}`,
-//     );
-//   });
+task("upgrade", "Upgrade a deployed smart contracts on '--network'")
+  .addPositionalParam(
+    "contractName",
+    "Name of the contract to upgrade (main use: get factory)",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "address",
+    "(Optional) [undefined] Contract address or proxy address",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "logic",
+    "(Optional) [undefined] Contract logic address or implementation address",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "contractArgs",
+    "(Optional) [undefined] Contract initialize function's arguments if any",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "tag",
+    "(Optional) [undefined] string to include metadata or anything related with a deployment",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "txValue",
+    "Contract creation transaction value if any",
+    undefined,
+    types.int,
+  )
+  // Signer params
+  .addOptionalParam(
+    "relativePath",
+    "Path relative to KEYSTORE.root to store the wallets",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "password",
+    "Password to decrypt the wallet",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "privateKey",
+    "A private key in hexadecimal can be used to sign",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPhrase",
+    "Mnemonic phrase to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .addOptionalParam(
+    "mnemonicPath",
+    "Mnemonic path to generate wallet from",
+    undefined,
+    types.string,
+  )
+  .setAction(async (args: Upgrade, hre) => {
+    console.log(
+      "\x1b[33m 🔄 WARNING: Remember to compile contracts if needed\x1b[0m",
+    );
+    const env = new Environment(hre);
+    const upgrader = (await hre.run("create-signer", {
+      relativePath: args.relativePath,
+      password: args.password,
+      privateKey: args.privateKey,
+      mnemonicPhrase: args.mnemonicPhrase,
+      mnemonicPath: args.mnemonicPath,
+    } as SignerInformation)) as CustomWallet | HDNodeWallet;
+    const result = await upgrade(
+      args.contractName,
+      upgrader,
+      args.contractArgs ? JSON5.parse(args.contractArgs as string) : [],
+      {
+        ...GAS_OPT.max,
+        value: args.txValue,
+      },
+      args.address,
+      args.logic,
+      args.tag,
+    );
+    //* Print Result on screen
+    console.info(
+      "\n✅ 🎉 Contract upgraded successfully! Contract Information:",
+      `\n  - Contract Name (id within this project): ${result.name}`,
+      `\n  - Contract Address (proxy address if upgradeable deployment): ${result.address}`,
+      result.upgradeable
+        ? `\n  - Logic | Implementation Address (only if upgradeable deployment): ${result.logic}`
+        : "",
+      `\n  - Admin or Deployer: ${upgrader.address}`,
+      `\n  - Deploy Timestamp: ${result.timestamp}`,
+      `\n  - Bytecode Hash: ${await result.codeHash()}`,
+      `\n  - Tag: ${result.tag}`,
+    );
+  });
 
 // task(
 //   "call-contract",
@@ -909,7 +893,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: Number(networkNameToId.hardhat),
+      chainId: networkNameToId.hardhat.num,
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,
@@ -932,10 +916,11 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `${BLOCKCHAIN.networks.get(networkNameToId.ganache)
-        ?.protocol}://${BLOCKCHAIN.networks.get(networkNameToId.ganache)
-        ?.hostname}:${BLOCKCHAIN.networks.get(networkNameToId.ganache)?.port}`,
-      chainId: Number(networkNameToId.ganache),
+      url: `${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
+        ?.protocol}://${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
+        ?.hostname}:${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
+        ?.port}`,
+      chainId: networkNameToId.ganache.num,
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,
       hardfork: BLOCKCHAIN.default.evm,

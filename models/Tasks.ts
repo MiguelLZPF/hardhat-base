@@ -34,18 +34,15 @@ export interface GetMnemonic {
 //* Deployments
 // Deploy with option to deploy upgradeable
 export interface Deploy extends SignerInformation {
-  upgradeable: boolean;
   contractName: ContractName;
-  proxyAdmin?: string;
   contractArgs: any;
-  initialize?: boolean;
-  noCompile: boolean;
   txValue: number;
   tag?: string;
 }
 
 export interface Upgrade extends Omit<Deploy, "upgradeable"> {
-  proxy?: string;
+  address?: string;
+  logic?: string;
 }
 
 export interface CallContract extends SignerInformation {

@@ -121,8 +121,9 @@ export default class Deployment {
     logic?: string | LogicHistory[],
   ) {
     this.name =
-      (deploymentOrName as ContractName) ||
-      (deploymentOrName as Deployment).name;
+      typeof deploymentOrName === "string"
+        ? deploymentOrName
+        : (deploymentOrName as Deployment).name;
     this.address = address || (deploymentOrName as Deployment).address;
     this.timestamp =
       typeof timestamp === "number"
@@ -268,8 +269,11 @@ export default class Deployment {
       );
     } catch (e) {
       // Handle any errors that occur during the process
+      console.error(
+        `\x1b[31m Error reading deployments from ${path}. Reinitialiceing deployments file... \x1b[0m`,
+      );
     }
-
+    // Return the deployments object
     return deployments;
   }
   /**
@@ -379,7 +383,9 @@ export default class Deployment {
   ): Promise<string> {
     const code = await provider.getCode(address);
     if (!code) {
-      throw new Error(`❌ 🔎 code cannot be found for ${address}`);
+      throw new Error(
+        `\x1b[31m❌ 🔎 code cannot be found for ${address}\x1b[0m`,
+      );
     }
     return keccak256(code);
   }
@@ -428,12 +434,13 @@ export default class Deployment {
       throw new Error(`❌ 📝 Couldn't write deployment to ${path}`);
     }
   }
-  updateLogic(logic: string, timestamp: Date | number) {
+  async updateLogic(logic: string, timestamp: Date | number) {
     this._logic.push({
       logic: logic,
       timestamp:
         typeof timestamp === "number" ? new Date(timestamp * 1000) : timestamp,
     });
+    await this.toJson();
   }
   //* Getters
   get transactionHash() {

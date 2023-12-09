@@ -1,26 +1,26 @@
 {
-  "hardhat": {
+  "ganache": {
     "Storage": {
       "TEST0": {
         "name": "Storage",
         "tag": "TEST0",
-        "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-        "timestamp": "2023-12-03T12:49:57.000Z",
-        "transactionHash": "0xc58d2d6bfa3cbb5af8f3c89d166d9419ddc0330334f9a3f394e46ee6bd695bb7",
-        "blockHash": "0x8054d89b57fb188ff1faa1c174b9925bd23de112bb29a561eaf65a1f068e2870",
-        "codeHash": "0xf9d0186424d483947e3b4a254ab8f5c1b63a4dc082df694676590790d9ab75ad",
-        "chainId": 31337,
+        "address": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66",
+        "timestamp": "2023-12-09T09:52:32.000Z",
+        "transactionHash": "0x40225c27cad61874ac6fdf523b6989d608ab968af341e545eab0b142cd89b8d9",
+        "blockHash": "0xfddf417cf88db09ab9db60845c5dccce1336e229268b343ab1b25ea17dcb8ee6",
+        "codeHash": "0x83c80822e4dc1b4cbe735b05dd39547fbe4958cf1d12d48536bfbf793f27f82a",
+        "chainId": 1337,
         "upgradeable": false
       },
       "TEST1": {
         "name": "Storage",
         "tag": "TEST1",
-        "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-        "timestamp": "2023-12-03T12:50:19.000Z",
-        "transactionHash": "0xc58d2d6bfa3cbb5af8f3c89d166d9419ddc0330334f9a3f394e46ee6bd695bb7",
-        "blockHash": "0xaa10814716d28c6d64a6b4a7e831f1477088e402d85c53c794cb71bb198f90b4",
-        "codeHash": "0xf9d0186424d483947e3b4a254ab8f5c1b63a4dc082df694676590790d9ab75ad",
-        "chainId": 31337,
+        "address": "0x26b4AFb60d6C903165150C6F0AA14F8016bE4aec",
+        "timestamp": "2023-12-09T09:56:36.000Z",
+        "transactionHash": "0x75d429ea4d8ca0f4f057b191993976f85b4b14b87124c1116d170572d6c04e83",
+        "blockHash": "0xb28d288b79e4776bfe553e598300c0db8effb224bdb4a2d1c2ca4f731cdadb49",
+        "codeHash": "0x24548c07a3a751bf60f8e50b33c2d1da7bfb783f239885ada2d8af90e9ba3b2c",
+        "chainId": 1337,
         "upgradeable": false
       }
     },
@@ -28,37 +28,23 @@
       "TEST0": {
         "name": "StorageUpgr",
         "tag": "TEST0",
-        "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
-        "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+        "address": "0x0E696947A06550DEf604e82C26fd9E493e576337",
+        "logic": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
         "logicHistory": [
           {
-            "timestamp": "2023-12-03T13:25:33.000Z",
-            "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
-          }
-        ],
-        "timestamp": "2023-12-03T13:25:33.000Z",
-        "transactionHash": "0x7daf92950ef70b11cb143762cbeb17ef4cbadf6dcf5d512d2fec4319d16cb50e",
-        "blockHash": "0x61fe0e6b381d07eea93524ad1ee2053ff370ec5cf2dc6968453b2018e1e95ead",
-        "codeHash": "0x2792128651025d8b7e0cb49fe27708ed6738e5b23facec1e1f48bcba3dbeae55",
-        "chainId": 31337,
-        "upgradeable": true
-      },
-      "TEST1": {
-        "name": "StorageUpgr",
-        "tag": "TEST1",
-        "address": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
-        "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-        "logicHistory": [
+            "timestamp": "2023-12-09T09:58:05.000Z",
+            "logic": "0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe"
+          },
           {
-            "timestamp": "2023-12-03T13:25:24.000Z",
-            "logic": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab"
+            "logic": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
+            "timestamp": "2023-12-09T09:58:27.000Z"
           }
         ],
-        "timestamp": "2023-12-03T13:25:24.000Z",
-        "transactionHash": "0x7daf92950ef70b11cb143762cbeb17ef4cbadf6dcf5d512d2fec4319d16cb50e",
-        "blockHash": "0x185e59673e841a7d4faa7984f0e45dae89484c8d246bd03fd6f5e05418f645b1",
-        "codeHash": "0x2792128651025d8b7e0cb49fe27708ed6738e5b23facec1e1f48bcba3dbeae55",
-        "chainId": 31337,
+        "timestamp": "2023-12-09T09:58:05.000Z",
+        "transactionHash": "0xe8f836d10573ab4ac466305c820b527af7677d2fcdbe65be65d6db1e31cfad07",
+        "blockHash": "0xd666abd70256c53b2162aef4f6d7992e1aa9bce0b3ef0e7888c6d8ed3ab0a845",
+        "codeHash": "0x254c18f8ba0d25028d636b2d09643aa75362ffa5353169785c34df69a5974b46",
+        "chainId": 1337,
         "upgradeable": true
       }
     }

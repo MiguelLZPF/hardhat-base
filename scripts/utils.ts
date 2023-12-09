@@ -7,6 +7,7 @@ import {
   isAddress,
 } from "ethers";
 import { existsSync, mkdirSync } from "fs";
+import { ENV } from "models/Configuration";
 import util from "util";
 
 /**
@@ -22,7 +23,7 @@ export const getContractTimestamp = async (
 ) => {
   let provider = contract.runner?.provider
     ? contract.runner.provider
-    : gProvider;
+    : ENV.provider;
   let receipt: TransactionReceipt | null;
   if (
     contract.deploymentTransaction() &&
@@ -81,7 +82,7 @@ export const checkDirectories = (reqDirectories: string[]) => {
  */
 export const getTimeStamp = async (
   block?: BlockTag,
-  provider: Provider = gProvider,
+  provider: Provider = ENV.provider,
 ) => {
   return (await provider.getBlock(block || "latest"))?.timestamp;
 };

@@ -20,11 +20,12 @@ export interface Network {
   dbPath?: string;
 }
 
-export const networkNameToId: Record<NetworkName, BigInt> = {
-  hardhat: BigInt(31337),
-  ganache: BigInt(1337),
-  mainTest: BigInt(1666),
-};
+export const networkNameToId: Record<NetworkName, { bi: BigInt; num: number }> =
+  {
+    hardhat: { bi: BigInt(31337), num: 31337 },
+    ganache: { bi: BigInt(1337), num: 1337 },
+    mainTest: { bi: BigInt(1666), num: 1666 },
+  };
 
 export let ENV: Environment;
 
@@ -45,7 +46,9 @@ export default class Environment {
   }
 
   static getNetwork(chainId: BigInt | number = 0) {
-    if (typeof chainId === "number") {
+    if (typeof chainId === "number" && isNaN(chainId)) {
+      chainId = BigInt(0);
+    } else if (typeof chainId === "number") {
       chainId = BigInt(chainId);
     }
     const network = BLOCKCHAIN.networks.get(chainId);

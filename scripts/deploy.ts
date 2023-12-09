@@ -5,11 +5,16 @@ import Storage, { StorageDeployResult } from "models/Storage";
 import StorageUpgr, { StorageUpgrDeployResult } from "models/StorageUpgr";
 
 /**
- * Performs a regular deployment and updates the deployment information in deployments JSON file
- * @param contractName name of the contract to be deployed
- * @param deployer signer used to sign deploy transacciation
- * @param _args arguments to use in the constructor
- * @param txValue contract creation transaccion value
+ * Deploys a contract with the specified name using the provided deployer and arguments.
+ *
+ * @param contractName - The name of the contract to deploy.
+ * @param deployer - The deployer's signer.
+ * @param args - The arguments to pass to the contract's deployment method.
+ * @param overrides - Optional overrides for the deployment transaction.
+ * @param save - Optional flag indicating whether to save the deployment information.
+ * @param tag - Optional tag to associate with the deployment.
+ * @returns The deployment information.
+ * @throws Error if no contract is found with the specified name.
  */
 export async function deploy(
   contractName: ContractName,
@@ -49,10 +54,22 @@ export async function deploy(
   return deployment;
 }
 
+/**
+ * Upgrades a contract with the specified parameters.
+ * @param contractName - The name of the contract to upgrade.
+ * @param upgrader - The signer account performing the upgrade.
+ * @param args - The arguments for the contract method.
+ * @param overrides - Optional overrides for the transaction.
+ * @param address - The address of the contract to upgrade.
+ * @param logic - The logic contract address to upgrade to.
+ * @param tag - The tag associated with the deployment.
+ * @returns The updated deployment object.
+ * @throws If the deployment cannot be retrieved from JSON or if the address or logic is not provided.
+ */
 export async function upgrade(
   contractName: ContractName,
   upgrader: Signer,
-  args: ContractMethodArgs<any[]>,
+  args: ContractMethodArgs<any[]> = [],
   overrides?: Overrides,
   address?: string,
   logic?: string,
@@ -66,19 +83,22 @@ export async function upgrade(
       contractName,
       tag,
     );
-  } catch (error) {}
-  if (!deployment || !address) {
-    throw new Error(`❌ Address nor provided and deployment not found`);
+  } catch (error) {
+    console.error("\x1b[31m❌  🔎  Cannot get deployment from json", error);
+  }
+  if (!deployment && !address) {
+    throw new Error(`\x1b[31m❌ Address not provided and deployment not found`);
+  }
+  address = address || deployment?.address;
+  logic = logic || deployment?.logic;
+  if (!address || !logic) {
+    throw new Error("\x1b[31m❌ Address or logic not provided");
   }
   let deployResult: StorageUpgrDeployResult;
   let deployBlock: Promise<Block | null>;
   switch (String(contractName)) {
     case "StorageUpgr":
-      const storage = new StorageUpgr(
-        address || deployment?.address,
-        logic || deployment?.logic,
-        upgrader,
-      );
+      const storage = new StorageUpgr(address, logic, upgrader);
       deployResult = await storage.upgradeStorage(undefined, overrides);
       deployBlock = ENV.provider.getBlock(deployResult.receipt.blockHash);
       break;
@@ -86,12 +106,20 @@ export async function upgrade(
       throw new Error(`❌ 🔎 No contract found with name: ${contractName}`);
   }
   if (deployment) {
-    deployment.updateLogic(
+    await deployment.updateLogic(
       deployResult.contract.logicAddress,
       (await deployBlock)!.timestamp,
     );
+  } else {
+    deployment = await Deployment.fromReceipt(
+      contractName,
+      deployResult.receipt,
+      deployResult.contract.address,
+      deployResult.contract.logicAddress,
+      tag,
+    );
   }
-  return { deployResult: deployResult, deployment: deployment };
+  return deployment;
 }
 
 // export const changeLogic = async (
