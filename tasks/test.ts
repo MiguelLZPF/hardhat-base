@@ -36,3 +36,15 @@ export const quickTest = task("quick-test", "Random quick testing function")
       ),
     );
   });
+
+// task("get-timestamp", "get the current timestamp in seconds")
+//   .addOptionalParam(
+//     "timeToAdd",
+//     "time to add to the timestamp in seconds",
+//     0,
+//     types.int,
+//   )
+//   .setAction(async ({ timeToAdd }, hre: HardhatRuntimeEnvironment) => {
+//     setGlobalHRE(hre);
+//     console.log(Math.floor(Date.now() / 1000) + timeToAdd);
+//   });

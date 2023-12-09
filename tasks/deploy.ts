@@ -210,3 +210,352 @@ export const upgrade = task(
       `\n  - Tag: ${result.tag}`,
     );
   });
+
+// task(
+//   "call-contract",
+//   "Call a contract function (this does not change contract storage or state)",
+// )
+//   .addPositionalParam(
+//     "contractName",
+//     "the name of the contract to get the ABI",
+//     undefined,
+//     types.string,
+//   )
+//   .addPositionalParam(
+//     "contractAddress",
+//     "the address where de contract is located",
+//     undefined,
+//     types.string,
+//   )
+//   .addPositionalParam(
+//     "functionName",
+//     "the name of the function to call",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalPositionalParam(
+//     "functionArgs",
+//     "the arguments to pass to the function",
+//     undefined,
+//     types.string,
+//   )
+//   // Signer params
+//   .addOptionalParam(
+//     "relativePath",
+//     "Path relative to KEYSTORE.root to store the wallets",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "password",
+//     "Password to decrypt the wallet",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "privateKey",
+//     "A private key in hexadecimal can be used to sign",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPhrase",
+//     "Mnemonic phrase to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPath",
+//     "Mnemonic path to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .setAction(async (args: ICallContract, hre) => {
+//     setGlobalHRE(hre);
+//     const wallet = await hre.run("create-signer", {
+//       relativePath: args.relativePath,
+//       password: args.password,
+//       privateKey: args.privateKey,
+//       mnemonicPhrase: args.mnemonicPhrase,
+//       mnemonicPath: args.mnemonicPath,
+//     } as ISignerInformation);
+//     console.log(
+//       `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`,
+//     );
+//     const functionArgs = args.functionArgs
+//       ? JSON5.parse(args.functionArgs)
+//       : [];
+//     const contract = await getContractInstance<Contract>(
+//       args.contractName,
+//       wallet,
+//       args.contractAddress,
+//     );
+//     console.log(
+//       "Result: ",
+//       await contract[args.functionName].staticCallResult(...functionArgs),
+//     );
+//   });
+
+// task(
+//   "execute-contract",
+//   "Execute the transacction of a contract function (it CHANGES contract storage or state)",
+// )
+//   .addPositionalParam(
+//     "contractName",
+//     "the name of the contract to get the ABI",
+//     undefined,
+//     types.string,
+//   )
+//   .addPositionalParam(
+//     "contractAddress",
+//     "the address where de contract is located",
+//     undefined,
+//     types.string,
+//   )
+//   .addPositionalParam(
+//     "functionName",
+//     "the name of the function to call",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalPositionalParam(
+//     "functionArgs",
+//     "the arguments to pass to the function",
+//     undefined,
+//     types.string,
+//   )
+//   // Signer params
+//   .addOptionalParam(
+//     "relativePath",
+//     "Path relative to KEYSTORE.root to store the wallets",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "password",
+//     "Password to decrypt the wallet",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "privateKey",
+//     "A private key in hexadecimal can be used to sign",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPhrase",
+//     "Mnemonic phrase to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPath",
+//     "Mnemonic path to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .setAction(async (args: ICallContract, hre) => {
+//     setGlobalHRE(hre);
+//     const wallet: Wallet = await hre.run("create-signer", {
+//       relativePath: args.relativePath,
+//       password: args.password,
+//       privateKey: args.privateKey,
+//       mnemonicPhrase: args.mnemonicPhrase,
+//       mnemonicPath: args.mnemonicPath,
+//     } as ISignerInformation);
+//     console.log(
+//       `Calling Smart Contract ${args.contractName}.${args.functionName}(${args.functionArgs}) at ${args.contractAddress}...`,
+//     );
+//     const functionArgs = args.functionArgs
+//       ? JSON5.parse(args.functionArgs)
+//       : [];
+//     const contract = await getContractInstance(
+//       args.contractName,
+//       wallet,
+//       args.contractAddress,
+//     );
+//     const receipt = await (
+//       (await contract[args.functionName](
+//         ...functionArgs,
+//         GAS_OPT.max,
+//       )) as ContractTransactionResponse
+//     ).wait();
+//     if (!receipt) {
+//       throw new Error(`❌  ⛓️  Cannot execute transaction. No receipt found`);
+//     }
+//     console.log("\nTransaction executed succesfully: ", {
+//       TransactionHash: receipt.hash,
+//       BlockHash: receipt.blockHash,
+//       BlockNumber: receipt.blockNumber,
+//     });
+//   });
+
+// task("sign-tx", "Signs the unsigned transaction")
+//   .addPositionalParam(
+//     "unsignedTx",
+//     "The complete unsigned transaction",
+//     undefined,
+//     types.string,
+//   )
+//   // Signer params
+//   .addOptionalParam(
+//     "relativePath",
+//     "Path relative to KEYSTORE.root to store the wallets",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "password",
+//     "Password to decrypt the wallet",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "privateKey",
+//     "A private key in hexadecimal can be used to sign",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPhrase",
+//     "Mnemonic phrase to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPath",
+//     "Mnemonic path to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .setAction(async (args: ISignTransaction, hre) => {
+//     setGlobalHRE(hre);
+//     const wallet: Wallet = await hre.run("create-signer", {
+//       relativePath: args.relativePath,
+//       password: args.password,
+//       privateKey: args.privateKey,
+//       mnemonicPhrase: args.mnemonicPhrase,
+//       mnemonicPath: args.mnemonicPath,
+//     } as ISignerInformation);
+
+//     const signedTx = await wallet.signTransaction(args.unsignedTx);
+
+//     console.log("\nTransaction signed succesfully: ", {
+//       UnsignedTransaction: args.unsignedTx,
+//       SignedTransaction: signedTx,
+//       Signer: wallet.address,
+//       SignerNonce: await wallet.getNonce(),
+//     });
+//   });
+
+// task(
+//   "get-logic",
+//   "Check what logic|implementation smart contract address is currently using a given proxy",
+// )
+//   .addPositionalParam(
+//     "proxy",
+//     "address of the proxy|storage contract",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "proxyAdmin",
+//     "Address of a deloyed Proxy Admin",
+//     undefined,
+//     types.string,
+//   )
+//   .setAction(async (args: IGetLogic, hre: HardhatRuntimeEnvironment) => {
+//     await setGlobalHRE(hre);
+
+//     const { logicFromProxy, adminFromProxy, logicFromAdmin, adminFromAdmin } =
+//       await getLogic(args.proxy, args.proxyAdmin);
+
+//     console.log(`
+//           Logic contract information:
+//             - Logic (from Proxy's storage): ${logicFromProxy}
+//             - Admin (from Proxy's storage): ${adminFromProxy}
+//             - Logic (from Admin): ${logicFromAdmin}
+//             - Admin (from Admin): ${adminFromAdmin}
+//         `);
+//   });
+
+// task(
+//   "change-logic",
+//   "change the actual logic|implementation smart contract of a TUP proxy",
+// )
+//   .addPositionalParam(
+//     "proxy",
+//     "address of the proxy|storage contract",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "proxyAdmin",
+//     "Address of a deloyed Proxy Admin",
+//     undefined,
+//     types.string,
+//   )
+//   .addParam(
+//     "newLogic",
+//     "Address of the new logic|implementation contract",
+//     undefined,
+//     types.string,
+//   )
+//   // Signer params
+//   .addOptionalParam(
+//     "relativePath",
+//     "Path relative to KEYSTORE.root to store the wallets",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "password",
+//     "Password to decrypt the wallet",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "privateKey",
+//     "A private key in hexadecimal can be used to sign",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPhrase",
+//     "Mnemonic phrase to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .addOptionalParam(
+//     "mnemonicPath",
+//     "Mnemonic path to generate wallet from",
+//     undefined,
+//     types.string,
+//   )
+//   .setAction(async (args: IChangeLogic, hre: HardhatRuntimeEnvironment) => {
+//     setGlobalHRE(hre);
+//     const wallet = await hre.run("create-signer", {
+//       relativePath: args.relativePath,
+//       password: args.password,
+//       privateKey: args.privateKey,
+//       mnemonicPhrase: args.mnemonicPhrase,
+//       mnemonicPath: args.mnemonicPath,
+//     } as ISignerInformation);
+//     const { previousLogic, actualLogic, receipt } = await changeLogic(
+//       args.proxy,
+//       args.newLogic,
+//       wallet!,
+//       args.proxyAdmin,
+//     );
+//     if (!receipt) {
+//       throw new Error(`❌  ⛓️  Cannot execute transaction. No receipt found`);
+//     }
+//     console.log(`
+//           Logic changed successfully:
+//             - Previous Logic: ${previousLogic}
+//             - Actual Logic: ${actualLogic}
+//             - Transaction: ${receipt.hash}
+//             - Block: ${receipt.blockHash}
+//         `);
+//   });
