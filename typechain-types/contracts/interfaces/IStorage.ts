@@ -9,7 +9,6 @@ import type {
   Result,
   Interface,
   EventFragment,
-  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -24,17 +23,13 @@ import type {
 } from "../../common";
 
 export interface IStorageInterface extends Interface {
-  getFunction(
-    nameOrSignature: "payMe" | "retrieve" | "store"
-  ): FunctionFragment;
+  getFunction(nameOrSignature: "retrieve" | "store"): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "Stored" | "ThankYou"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "Stored"): EventFragment;
 
-  encodeFunctionData(functionFragment: "payMe", values?: undefined): string;
   encodeFunctionData(functionFragment: "retrieve", values?: undefined): string;
   encodeFunctionData(functionFragment: "store", values: [BigNumberish]): string;
 
-  decodeFunctionResult(functionFragment: "payMe", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "retrieve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "store", data: BytesLike): Result;
 }
@@ -44,24 +39,6 @@ export namespace StoredEvent {
   export type OutputTuple = [num: bigint];
   export interface OutputObject {
     num: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace ThankYouEvent {
-  export type InputTuple = [
-    from: AddressLike,
-    to: AddressLike,
-    message: string
-  ];
-  export type OutputTuple = [from: string, to: string, message: string];
-  export interface OutputObject {
-    from: string;
-    to: string;
-    message: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -112,8 +89,6 @@ export interface IStorage extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  payMe: TypedContractMethod<[], [void], "payable">;
-
   retrieve: TypedContractMethod<[], [bigint], "view">;
 
   store: TypedContractMethod<[num: BigNumberish], [void], "nonpayable">;
@@ -122,9 +97,6 @@ export interface IStorage extends BaseContract {
     key: string | FunctionFragment
   ): T;
 
-  getFunction(
-    nameOrSignature: "payMe"
-  ): TypedContractMethod<[], [void], "payable">;
   getFunction(
     nameOrSignature: "retrieve"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -139,13 +111,6 @@ export interface IStorage extends BaseContract {
     StoredEvent.OutputTuple,
     StoredEvent.OutputObject
   >;
-  getEvent(
-    key: "ThankYou"
-  ): TypedContractEvent<
-    ThankYouEvent.InputTuple,
-    ThankYouEvent.OutputTuple,
-    ThankYouEvent.OutputObject
-  >;
 
   filters: {
     "Stored(uint256)": TypedContractEvent<
@@ -157,17 +122,6 @@ export interface IStorage extends BaseContract {
       StoredEvent.InputTuple,
       StoredEvent.OutputTuple,
       StoredEvent.OutputObject
-    >;
-
-    "ThankYou(address,address,string)": TypedContractEvent<
-      ThankYouEvent.InputTuple,
-      ThankYouEvent.OutputTuple,
-      ThankYouEvent.OutputObject
-    >;
-    ThankYou: TypedContractEvent<
-      ThankYouEvent.InputTuple,
-      ThankYouEvent.OutputTuple,
-      ThankYouEvent.OutputObject
     >;
   };
 }

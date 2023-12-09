@@ -1,11 +1,4 @@
-import {
-  ContractName,
-  CONTRACT_NAMES,
-  Hardfork,
-  IContract,
-  INetwork,
-  NetworkName,
-} from "models/Configuration";
+import { Hardfork, Network } from "models/Configuration";
 import { Overrides } from "ethers";
 
 /**
@@ -23,9 +16,11 @@ export const KEYSTORE = {
     accountNumber: 10, // Ganache server default account number
     balance: "0x2710", // Pseudo-infinite balance
     password: "PaSs_W0Rd", // should use another password for real things
-    privateKey: "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d",
+    privateKey:
+      "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d",
     mnemonic: {
-      phrase: "myth like bonus scare over problem client lizard pioneer submit female collect",
+      phrase:
+        "myth like bonus scare over problem client lizard pioneer submit female collect",
       path: "m/44'/60'/0'/0/0",
       basePath: "m/44'/60'/0'/0",
       locale: "en",
@@ -47,19 +42,9 @@ export const BLOCKCHAIN = {
     maxPriorityFeePerGas: 100,
     initialBaseFeePerGas: 7,
   },
-  networks: new Map<NetworkName | undefined, INetwork>([
+  networks: new Map<BigInt | undefined, Network>([
     [
-      undefined,
-      {
-        chainId: BigInt(31337),
-        name: "hardhat",
-        protocol: "http",
-        hostname: "127.0.0.1",
-        port: 8545,
-      },
-    ],
-    [
-      "hardhat",
+      undefined || BigInt(0) || BigInt(31337), // Default
       {
         chainId: BigInt(31337),
         name: "hardhat",
@@ -69,7 +54,7 @@ export const BLOCKCHAIN = {
       },
     ],
     [
-      "ganache",
+      BigInt(1337),
       {
         chainId: BigInt(1337),
         name: "ganache",
@@ -80,7 +65,7 @@ export const BLOCKCHAIN = {
       },
     ],
     [
-      "mainTest",
+      BigInt(1666),
       {
         chainId: BigInt(1666),
         name: "mainTest",
@@ -106,57 +91,6 @@ export const GAS_OPT = {
 export const DEPLOY = {
   deploymentsPath: "deployments.json",
 };
-
-export const CONTRACTS = new Map<ContractName, IContract>([
-  [
-    CONTRACT_NAMES[0],
-    {
-      name: CONTRACT_NAMES[0],
-      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_NAMES[0]}.json`,
-      address: new Map([
-        ["hardhat", undefined],
-        ["ganache", undefined],
-        ["mainTest", undefined],
-      ]),
-    },
-  ],
-  [
-    CONTRACT_NAMES[1],
-    {
-      name: CONTRACT_NAMES[1],
-      artifact: `node_modules/@openzeppelin/contracts/build/contracts/${CONTRACT_NAMES[1]}.json`,
-      address: new Map([
-        ["hardhat", undefined],
-        ["ganache", undefined],
-        ["mainTest", undefined],
-      ]),
-    },
-  ],
-  [
-    CONTRACT_NAMES[2],
-    {
-      name: CONTRACT_NAMES[2],
-      artifact: `artifacts/contracts/${CONTRACT_NAMES[2]}.sol/${CONTRACT_NAMES[2]}.json`,
-      address: new Map([
-        ["hardhat", undefined],
-        ["ganache", undefined],
-        ["mainTest", undefined],
-      ]),
-    },
-  ],
-  [
-    CONTRACT_NAMES[3],
-    {
-      name: CONTRACT_NAMES[3],
-      artifact: `artifacts/contracts/${CONTRACT_NAMES[3]}.sol/${CONTRACT_NAMES[3]}.json`,
-      address: new Map([
-        ["hardhat", undefined],
-        ["ganache", undefined],
-        ["mainTest", undefined],
-      ]),
-    },
-  ],
-]);
 
 export const TEST = {
   accountNumber: 2,

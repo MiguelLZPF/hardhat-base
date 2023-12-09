@@ -1,12 +1,12 @@
-# 1. Hardhat Off-Chain Deplyments Base - HHoffCDB
+# 1. Hardhat Off-Chain Deployments Base - HHoffCDB
 
-Before run anything, make sure you run `npm install`.
+Before running anything, make sure you run `npm install`.
 
-This project aims to provide an easy to use _Hardhat base project_ that can be used to develop new smart contracts and then deploy them using the _new tasks provided on top_ of a basic Hardhat project. Basically it provides two main features: _Encryped JSON wallet management_ and _automated offChain deployments_ (regular and TUP Upgradeable). This project is supposed to be used in private and public-permissioned networks, but can be used in public ones changing a few parameters in the gas options.
+This project aims to provide an easy-to-use _Hardhat base project_ that can be used to develop new smart contracts and deploy them using the _new tasks provided on top_ of a basic Hardhat project. It offers two main features: _Encrypted JSON wallet management_ and _automated off-chain deployments_ (regular and UUPS Upgradeable (EIP-1822)). This project is designed for use in private and public-permissioned networks but can also be used in public networks by adjusting a few gas options.
 
-The structure follows a Hardhat project environment using **ethers**, **waffle** and **chai**. It also use **typescript** and generates smart contract types using **typechain**. The --network parameter refers to the network to be used defined in the [hardhat config file](./hardhat.config.ts).
+The project structure follows a Hardhat environment using **ethers**, **waffle**, and **chai**. It also utilizes **TypeScript** and generates smart contract types using **Typechain**. The `--network` parameter refers to the network defined in the [hardhat config file](./hardhat.config.ts).
 
-- [1. Hardhat Off-Chain Deplyments Base - HHOCDB](#1-hardhat-off-chain-deplyments-base---hhocdb)
+- [1. Hardhat Off-Chain Deployments Base - HHoffCDB](#1-hardhat-off-chain-deployments-base---hhoffcdb)
   - [1.1. Custom Tasks added](#11-custom-tasks-added)
     - [AVAILABLE TASKS:](#available-tasks)
   - [1.2. Configuration file constants](#12-configuration-file-constants)

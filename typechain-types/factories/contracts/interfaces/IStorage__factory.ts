@@ -23,38 +23,6 @@ const _abi = [
     type: "event",
   },
   {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "message",
-        type: "string",
-      },
-    ],
-    name: "ThankYou",
-    type: "event",
-  },
-  {
-    inputs: [],
-    name: "payMe",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "retrieve",
     outputs: [

@@ -2,7 +2,7 @@ import { TransactionRequest } from "ethers";
 import { ContractName } from "models/Configuration";
 
 //* Tasks Interfaces
-export interface ISignerInformation {
+export interface SignerInformation {
   relativePath?: string;
   password?: string;
   privateKey?: string;
@@ -10,13 +10,14 @@ export interface ISignerInformation {
   mnemonicPath?: string;
 }
 
-export interface IGenerateWallets extends Omit<ISignerInformation, "relativePath"> {
-  type?: string;  
+export interface GenerateWallets
+  extends Omit<SignerInformation, "relativePath"> {
+  type?: string;
   batchSize?: number;
   relativePath?: string;
 }
 
-export interface IGetWalletInfo {
+export interface GetWalletInfo {
   relativePath?: string;
   password?: string;
   privateKey?: string;
@@ -25,29 +26,26 @@ export interface IGetWalletInfo {
   showPrivate?: boolean;
 }
 
-export interface IGetMnemonic {
+export interface GetMnemonic {
   relativePath: string;
   password?: string;
 }
 
 //* Deployments
 // Deploy with option to deploy upgradeable
-export interface IDeploy extends ISignerInformation {
-  upgradeable: boolean;
+export interface Deploy extends SignerInformation {
   contractName: ContractName;
-  proxyAdmin?: string;
   contractArgs: any;
-  initialize?: boolean;
-  noCompile: boolean;
   txValue: number;
   tag?: string;
 }
 
-export interface IUpgrade extends Omit<IDeploy, "upgradeable"> {
-  proxy?: string;
+export interface Upgrade extends Omit<Deploy, "upgradeable"> {
+  address?: string;
+  logic?: string;
 }
 
-export interface ICallContract extends ISignerInformation {
+export interface CallContract extends SignerInformation {
   contractName: ContractName;
   contractAddress: string;
   functionName: string;
@@ -55,16 +53,16 @@ export interface ICallContract extends ISignerInformation {
   artifactPath: string;
 }
 
-export interface ISignTransaction extends ISignerInformation {
+export interface SignTransaction extends SignerInformation {
   unsignedTx: TransactionRequest;
 }
 
-export interface IGetLogic {
+export interface GetLogic {
   proxy: string;
   proxyAdmin?: string;
 }
 
-export interface IChangeLogic extends ISignerInformation {
+export interface ChangeLogic extends SignerInformation {
   proxy: string;
   proxyAdmin?: string;
   newLogic: string;

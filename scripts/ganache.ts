@@ -1,10 +1,13 @@
 import { BLOCKCHAIN, KEYSTORE } from "configuration";
 import ganache from "ganache";
 import {} from "ethers";
+import { networkNameToId } from "models/Configuration";
+
+const GANACHE_NET_ID = networkNameToId.ganache;
 
 const ganacheServer = ganache.server({
   chain: {
-    chainId: Number(BLOCKCHAIN.networks.get("ganache")?.chainId),
+    chainId: GANACHE_NET_ID.num,
     hardfork: BLOCKCHAIN.default.evm,
     vmErrorsOnRPCResponse: true,
   },
@@ -21,7 +24,7 @@ const ganacheServer = ganache.server({
     defaultBalance: Number(BigInt(KEYSTORE.default.balance)),
   },
   database: {
-    dbPath: BLOCKCHAIN.networks.get("ganache")?.dbPath,
+    dbPath: BLOCKCHAIN.networks.get(GANACHE_NET_ID.bi)?.dbPath,
   },
   logging: {
     // quiet: true,
@@ -31,8 +34,14 @@ const ganacheServer = ganache.server({
 
 async function main() {
   try {
-    await ganacheServer.listen(BLOCKCHAIN.networks.get("ganache")!.port);
-    console.log(`Ganache server listening on port ${BLOCKCHAIN.networks.get("ganache")?.port}...`);
+    await ganacheServer.listen(
+      BLOCKCHAIN.networks.get(GANACHE_NET_ID.bi)!.port,
+    );
+    console.log(
+      `Ganache server listening on port ${BLOCKCHAIN.networks.get(
+        GANACHE_NET_ID.bi,
+      )?.port}...`,
+    );
     const provider = ganacheServer.provider;
     console.log(
       "Chain: ",
@@ -40,7 +49,7 @@ async function main() {
       "Miner: ",
       provider.getOptions().miner,
       "Accounts: ",
-      provider.getInitialAccounts()
+      provider.getInitialAccounts(),
     );
   } catch (error) {
     console.log("ERROR: Ganache server error", error);

@@ -5,12 +5,13 @@ import {
   InterfaceAbi,
   ContractFactory,
   BaseContract,
-  Contract,
   ContractRunner,
   ContractTransactionResponse,
   ContractTransactionReceipt,
   ContractMethodArgs,
   TransactionResponse,
+  TransactionReceipt,
+  AddressLike,
   BytesLike,
   isAddress,
   Overrides,
@@ -18,66 +19,76 @@ import {
   Log,
 } from "ethers";
 
-export default class CustomContract<C extends BaseContract> {
+export default class CustomContract<C extends CBaseContract> {
   //* Properties
   contract: C;
   address: string;
-  runner: ContractRunner;
   //* Contructor
-  constructor(address: string, abi: Interface | InterfaceAbi, signer: Signer);
-  constructor(
-    address: string,
-    abi: Interface | InterfaceAbi,
-    provider: Provider,
-  );
+  constructor(contract: C);
   constructor(
     address: string,
     abi: Interface | InterfaceAbi,
     runner: ContractRunner,
   );
   constructor(
-    address: string,
-    abi: Interface | InterfaceAbi,
-    runner: ContractRunner,
+    contractOrAddress: string | C,
+    abi?: Interface | InterfaceAbi,
+    runner?: ContractRunner,
   ) {
-    this._mustBeAddress(address);
-    this.runner = runner;
-    this.contract = new Contract(address, abi, this.runner) as unknown as C;
-    this.address = address;
+    //* Check parameters
+    let address: string | undefined;
+    let contract: C | undefined;
+    // First parameter
+    if (typeof contractOrAddress === "string") {
+      address = contractOrAddress as string;
+    } else {
+      contract = contractOrAddress as C;
+    }
+    //* Implementation
+    if (address) {
+      this._checkAddress(address);
+      this.contract = new BaseContract(address, abi!, runner!) as C;
+    } else if (contract) {
+      this.contract = contract;
+    } else {
+      throw new Error(`❌  Constructor unknown error`);
+    }
+    this._checkProvider();
+    this.address = this.target as string;
   }
+
   //* Static methods
+
   static async deploy<
     F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
+    C extends CBaseContract = CBaseContract,
+  >(
+    factory: F,
+    signer?: Signer,
+    args?: ContractMethodArgs<any[]>,
+    overrides?: Overrides,
+  ): Promise<CCDeployResult<C>>;
+  static async deploy<
+    F extends ContractFactory = ContractFactory,
+    C extends CBaseContract = CBaseContract,
   >(
     abi: Interface | InterfaceAbi,
     bytecode: BytesLike | { object: string },
     signer: Signer,
     args?: ContractMethodArgs<any[]>,
     overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>>;
+  ): Promise<CCDeployResult<C>>;
   static async deploy<
     F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
-  >(
-    factory: F,
-    signer?: Signer,
-    args?: ContractMethodArgs<any[]>,
-    overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>>;
-  static async deploy<
-    F extends ContractFactory = ContractFactory,
-    C extends BaseContract = BaseContract,
+    C extends CBaseContract = CBaseContract,
   >(
     factoryOrAbi: F | Interface | InterfaceAbi,
     bytecodeOrSigner?: BytesLike | { object: string } | Signer,
     signerOrArgs?: Signer | ContractMethodArgs<any[]>,
     argsOrOverrides?: ContractMethodArgs<any[]> | Overrides,
     overrides?: Overrides,
-  ): Promise<ICCDeployResult<C>> {
-    let contract: BaseContract & {
-      deploymentTransaction(): ContractTransactionResponse;
-    } & Omit<BaseContract, keyof BaseContract>;
+  ): Promise<CCDeployResult<C>> {
+    let contract: CBaseContract;
     if (factoryOrAbi instanceof ContractFactory) {
       const args = signerOrArgs as ContractMethodArgs<any[]>;
       overrides = argsOrOverrides as Overrides;
@@ -104,25 +115,58 @@ export default class CustomContract<C extends BaseContract> {
     }
     return {
       contract: new CustomContract<C>(
-        await contract.getAddress(),
-        contract.interface,
-        // must be Signer to be able to deploy
-        contract.runner as Signer,
+        (await contract.waitForDeployment()) as C,
       ),
       receipt: receipt,
     };
   }
 
   //* Contract base functions
+  // Getters
+  get runner() {
+    return this.contract.runner;
+  }
+  get signer() {
+    this._checkSigner();
+    this._checkProvider();
+    return this.runner as Signer;
+  }
+  get interface() {
+    return this.contract.interface;
+  }
+  get target() {
+    return this.contract.target;
+  }
+  get provider() {
+    this._checkProvider;
+    if ((this.contract.runner as Signer).signMessage) {
+      return (this.contract.runner as Signer).provider!;
+    } else if (this.contract.runner as Provider) {
+      return (this.contract.runner as Provider)!;
+    } else {
+      throw new Error(`❌ Could not find provider`);
+    }
+  }
+  // Functions
   attach(newAddress: string) {
-    this._mustBeAddress(newAddress);
-    this.contract = this.contract.attach(newAddress) as typeof this.contract;
+    this._checkAddress(newAddress);
+    this.contract = this.contract.attach(newAddress) as C;
     this.address = newAddress;
+    return this;
   }
   connect(runner: ContractRunner) {
-    this.runner = runner;
-    this.contract = this.contract.connect(runner) as typeof this.contract;
+    this.contract = this.contract.connect(runner) as C;
     return this;
+  }
+  async getDeployedCode() {
+    return this.contract.getDeployedCode();
+  }
+  async waitForDeployment() {
+    return this.contract.waitForDeployment();
+  }
+  async getAddress() {
+    this.address = await this.contract.getAddress();
+    return this.address;
   }
 
   //* Protected generic functions
@@ -133,12 +177,21 @@ export default class CustomContract<C extends BaseContract> {
       );
     }
   }
-  protected _mustBeAddress(...addresses: (string | undefined)[]) {
+  protected _checkProvider() {
+    if (
+      !this.contract.runner ||
+      !(this.contract.runner as Provider) ||
+      !(this.contract.runner as Signer).provider
+    ) {
+      throw new Error(`❌  🛜  No provider detected. Instance not connected`);
+    }
+  }
+  protected _checkAddress(...addresses: (AddressLike | undefined)[]) {
     // remove undefined addresses
     addresses.filter((address) => address !== undefined);
     if (addresses.length > 1) {
       for (const address of addresses) {
-        this._mustBeAddress(address);
+        this._checkAddress(address);
       }
     } else if ((addresses.length = 1)) {
       if (!isAddress(addresses[0])) {
@@ -177,7 +230,13 @@ export default class CustomContract<C extends BaseContract> {
   }
 }
 
-export interface ICCDeployResult<C extends BaseContract = BaseContract> {
+export type CBaseContract =
+  | (BaseContract & {
+      deploymentTransaction(): ContractTransactionResponse;
+    } & Omit<BaseContract, keyof BaseContract>)
+  | BaseContract;
+
+export interface CCDeployResult<C extends CBaseContract = CBaseContract> {
   contract: CustomContract<C>;
-  receipt: ContractTransactionReceipt;
+  receipt: ContractTransactionReceipt | TransactionReceipt;
 }
