@@ -304,7 +304,7 @@ task("deploy", "Deploy smart contracts on '--network'")
   )
   .setAction(async (args: Deploy, hre) => {
     console.log(
-      "\x1b[33m 🔄 WARNING: Remember to compile contracts if needed\x1b[0m",
+      "\x1b[33m ❗️ WARNING: Remember to compile contracts if needed\x1b[0m",
     );
     const env = new Environment(hre);
     const deployer = (await hre.run("create-signer", {
@@ -410,7 +410,7 @@ task("upgrade", "Upgrade a deployed smart contracts on '--network'")
   )
   .setAction(async (args: Upgrade, hre) => {
     console.log(
-      "\x1b[33m 🔄 WARNING: Remember to compile contracts if needed\x1b[0m",
+      "\x1b[33m ❗️ WARNING: Remember to compile contracts if needed\x1b[0m",
     );
     const env = new Environment(hre);
     const upgrader = (await hre.run("create-signer", {
