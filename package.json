@@ -27,7 +27,7 @@
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.1",
     "@openzeppelin/contracts-upgradeable": "5.0.1",
-    "@openzeppelin/hardhat-upgrades": "^2.4.3",
+    "@openzeppelin/hardhat-upgrades": "^2.5.0",
     "@types/chai": "^4.3.11",
     "@types/node": "^20.10.4",
     "bun-types": "^1.0.15",
