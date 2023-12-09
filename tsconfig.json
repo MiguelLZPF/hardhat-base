@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "CommonJS",
+    "module": "commonjs",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
@@ -9,19 +9,12 @@
     "skipLibCheck": true,
     "baseUrl": "./"
   },
-  "paths": {
-    //! Not working...
-    "@config": ["configuration"],
-    "@contracts": ["contracts"],
-    "@models": ["models"],
-    "@scripts": ["scripts"],
-    "@test": ["test"],
-    "@types": ["typechain-types"],
-    "@artifacts": ["artifacts"]
-  },
+  //! Not working
+  // "paths": {
+  //   "@tasks/*": ["tasks/*"]
+  // },
   "ts-node": {
     // Do not forget to `npm i -D tsconfig-paths`
     "require": ["tsconfig-paths/register"]
-  },
-  "types": ["bun-types"]
+  }
 }
