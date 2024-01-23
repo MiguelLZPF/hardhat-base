@@ -13,6 +13,10 @@ import CustomContract from "models/CustomContract";
 import { expect } from "chai";
 import CustomWallet from "models/Wallet";
 import Environment, { Network } from "models/Configuration";
+import { logif } from "scripts/utils";
+
+//* Generic Constants
+const ENABLE_LOG = false; // set to true to see logs
 
 //* Specific Constants
 

@@ -7,23 +7,27 @@ import { StorageUpgrV1__factory } from "typechain-types";
 import CustomWallet from "models/Wallet";
 import StorageUpgr from "models/StorageUpgr";
 import Environment, { Network } from "models/Configuration";
+import { logif } from "scripts/utils";
 
-// Specific Constants
+//* Generic Constants
+const ENABLE_LOG = false; // set to true to see logs
+
+//* Specific Constants
 const CONTRACT_NAME = "StorageUpgr";
 const STORAGE_DEPLOYED_AT = undefined;
 const STORAGE_LOGIC = undefined;
 const VALUES = { initial: 12, beforeUpgrade: 21, afterUpgrade: 8 };
 
-// General Variables
+//* General Variables
 let provider: Provider;
 let network: Network;
 let accounts: CustomWallet[] = [];
 let lastBlock: Block | null;
-// Specific Variables
-// -- wallets | accounts
+//* Specific Variables
+// Wallets | Accounts
 let admin: CustomWallet;
 let defaultUser: CustomWallet;
-// -- contracts
+// Contracts
 let storage: StorageUpgr;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
@@ -35,7 +39,7 @@ describe("Storage", () => {
       );
     }
     console.log(
-      `✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
+      `✅  🛜  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
     );
     // Generate TEST.accountNumber wallets
     const baseWallet = CustomWallet.fromPhrase(
@@ -58,7 +62,8 @@ describe("Storage", () => {
         storage = new StorageUpgr(STORAGE_DEPLOYED_AT, STORAGE_LOGIC, admin);
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).to.equal(STORAGE_DEPLOYED_AT);
-        console.log(
+        logif(
+          ENABLE_LOG,
           `${CONTRACT_NAME} contract recovered at: ${storage.address}`,
         );
       });
@@ -71,7 +76,8 @@ describe("Storage", () => {
         storage = deployResult.contract;
         expect(isAddress(storage.address)).to.be.true;
         expect(storage.address).not.to.equal(ZeroAddress);
-        console.log(
+        logif(
+          ENABLE_LOG,
           `NEW ${CONTRACT_NAME} contract deployed at: ${storage.address}`,
         );
       });
