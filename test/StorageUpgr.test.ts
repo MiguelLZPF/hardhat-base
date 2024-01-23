@@ -1,4 +1,4 @@
-import { GAS_OPT, TEST } from "configuration";
+import { GAS_OPT, KEYSTORE, TEST } from "configuration";
 import * as HRE from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
@@ -6,7 +6,7 @@ import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
 import { StorageUpgrV1__factory } from "typechain-types";
 import CustomWallet from "models/Wallet";
 import StorageUpgr from "models/StorageUpgr";
-import CustomContract from "models/CustomContract";
+import Environment, { Network } from "models/Configuration";
 
 // Specific Constants
 const CONTRACT_NAME = "StorageUpgr";
@@ -16,7 +16,7 @@ const VALUES = { initial: 12, beforeUpgrade: 21, afterUpgrade: 8 };
 
 // General Variables
 let provider: Provider;
-let network: INetwork;
+let network: Network;
 let accounts: CustomWallet[] = [];
 let lastBlock: Block | null;
 // Specific Variables
@@ -24,11 +24,10 @@ let lastBlock: Block | null;
 let admin: CustomWallet;
 let defaultUser: CustomWallet;
 // -- contracts
-let proxyAdmin: CustomContract<ProxyAdmin>;
 let storage: StorageUpgr;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
-    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(HRE));
+    ({ provider: provider, network: network } = new Environment(HRE));
     lastBlock = await provider.getBlock("latest");
     if (!lastBlock || lastBlock.number < 0) {
       throw new Error(
@@ -39,15 +38,18 @@ describe("Storage", () => {
       `✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
     );
     // Generate TEST.accountNumber wallets
-    const baseWallet = CustomWallet.fromPhrase();
+    const baseWallet = CustomWallet.fromPhrase(
+      undefined,
+      provider,
+      KEYSTORE.default.mnemonic.basePath,
+    );
     for (let index = 0; index < TEST.accountNumber; index++) {
       accounts.push(
         new CustomWallet(baseWallet.deriveChild(index).privateKey, provider),
       );
     }
     // set specific roles
-    admin = accounts[0];
-    defaultUser = accounts[1];
+    [admin, defaultUser] = accounts;
   });
 
   describe("Deployment and Initialization", () => {
