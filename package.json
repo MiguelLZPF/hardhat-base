@@ -1,6 +1,6 @@
 {
   "name": "hardhat-base",
-  "version": "3.2.2",
+  "version": "4.0.0",
   "description": "This is a base hardhat project for development, testing and deployment of Smart Contracts. It adds scripts and hardhat tasks for Off-Chain deployments.",
   "main": "index.js",
   "scripts": {
