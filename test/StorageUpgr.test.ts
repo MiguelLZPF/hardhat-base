@@ -1,5 +1,5 @@
 import { GAS_OPT, KEYSTORE, TEST } from "configuration";
-import * as HRE from "hardhat";
+import hre from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
 import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
@@ -27,7 +27,7 @@ let defaultUser: CustomWallet;
 let storage: StorageUpgr;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
-    ({ provider: provider, network: network } = new Environment(HRE));
+    ({ provider: provider, network: network } = new Environment(hre));
     lastBlock = await provider.getBlock("latest");
     if (!lastBlock || lastBlock.number < 0) {
       throw new Error(
