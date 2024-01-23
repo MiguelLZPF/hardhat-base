@@ -1,4 +1,4 @@
-import { GAS_OPT, TEST } from "configuration";
+import { GAS_OPT, KEYSTORE, TEST } from "configuration";
 import hre from "hardhat";
 import {
   Signer,
@@ -8,18 +8,21 @@ import {
   Interface,
   BaseContract,
 } from "ethers";
-import { setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Configuration";
 import { Storage, Storage__factory } from "typechain-types";
 import CustomContract from "models/CustomContract";
 import { expect } from "chai";
 import CustomWallet from "models/Wallet";
+import Environment, { Network } from "models/Configuration";
+import { logif } from "scripts/utils";
+
+//* Generic Constants
+const ENABLE_LOG = false; // set to true to see logs
 
 //* Specific Constants
 
 //* General Variables
 let provider: Provider;
-let network: INetwork;
+let network: Network;
 let accounts: CustomWallet[] = [];
 let lastBlock: Block | null;
 //* Specific Variables
@@ -30,7 +33,7 @@ let defaultUser: CustomWallet;
 let contract: CustomContract<Storage>;
 describe("CustomContract", () => {
   before("Generate test Accounts", async () => {
-    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(hre));
+    ({ provider: provider, network: network } = new Environment(hre));
     lastBlock = await provider.getBlock("latest");
     if (!lastBlock || lastBlock.number < 0) {
       throw new Error(
@@ -41,15 +44,18 @@ describe("CustomContract", () => {
       `✅  🛜  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
     );
     // Generate TEST.accountNumber wallets
-    const baseWallet = CustomWallet.fromPhrase();
+    const baseWallet = CustomWallet.fromPhrase(
+      undefined,
+      provider,
+      KEYSTORE.default.mnemonic.basePath,
+    );
     for (let index = 0; index < TEST.accountNumber; index++) {
       accounts.push(
         new CustomWallet(baseWallet.deriveChild(index).privateKey, provider),
       );
     }
     // set specific roles
-    admin = accounts[0];
-    defaultUser = accounts[1];
+    [admin, defaultUser] = accounts;
   });
 
   describe("Deployment", () => {

@@ -27,7 +27,7 @@ export default class CustomWallet extends Wallet {
   static override fromPhrase(
     phrase: string = KEYSTORE.default.mnemonic.phrase,
     provider: Provider = ENV.provider,
-    path: string = KEYSTORE.default.mnemonic.path,
+    path: string = KEYSTORE.default.mnemonic.path, // m/44'/60'/0'/0/0
   ): HDNodeWallet {
     return HDNodeWallet.fromPhrase(
       phrase.toLowerCase() === "default"
