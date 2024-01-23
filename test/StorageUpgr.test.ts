@@ -3,13 +3,7 @@ import * as HRE from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
 import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
-import {
-  ProxyAdmin,
-  ProxyAdmin__factory,
-  StorageUpgrV1__factory,
-} from "typechain-types";
-import { setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Configuration";
+import { StorageUpgrV1__factory } from "typechain-types";
 import CustomWallet from "models/Wallet";
 import StorageUpgr from "models/StorageUpgr";
 import CustomContract from "models/CustomContract";

@@ -8,8 +8,6 @@ import {
   Interface,
   BaseContract,
 } from "ethers";
-import { setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Configuration";
 import { Storage, Storage__factory } from "typechain-types";
 import CustomContract from "models/CustomContract";
 import { expect } from "chai";

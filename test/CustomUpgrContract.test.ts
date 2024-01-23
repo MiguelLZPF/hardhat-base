@@ -8,8 +8,6 @@ import {
   Interface,
   keccak256,
 } from "ethers";
-import { setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Configuration";
 import {
   StorageUpgr,
   StorageUpgrV1__factory,

@@ -1,12 +1,11 @@
-import { GAS_OPT, TEST } from "configuration";
+import { GAS_OPT, KEYSTORE, TEST } from "configuration";
 import * as HRE from "hardhat";
 import { step } from "mocha-steps";
 import { expect } from "chai";
 import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
-import { setGlobalHRE } from "scripts/utils";
-import { INetwork } from "models/Configuration";
 import CustomWallet from "models/Wallet";
 import Storage from "models/Storage";
+import Environment, { Network } from "models/Configuration";
 
 // Specific Constants
 const CONTRACT_NAME = "Storage";
@@ -15,7 +14,7 @@ const INIT_VALUE = 12;
 
 // General Variables
 let provider: Provider;
-let network: INetwork;
+let network: Network;
 let accounts: CustomWallet[] = [];
 let lastBlock: Block | null;
 // Specific Variables
@@ -26,7 +25,7 @@ let defaultUser: CustomWallet;
 let storage: Storage;
 describe("Storage", () => {
   before("Generate test Accounts", async () => {
-    ({ gProvider: provider, gNetwork: network } = await setGlobalHRE(HRE));
+    ({ provider: provider, network: network } = new Environment(HRE));
     lastBlock = await provider.getBlock("latest");
     if (!lastBlock || lastBlock.number < 0) {
       throw new Error(
@@ -37,17 +36,18 @@ describe("Storage", () => {
       `✅  Connected to network: ${network.name} (latest block: ${lastBlock.number})`,
     );
     // Generate TEST.accountNumber wallets
-    const baseWallet = CustomWallet.fromPhrase();
+    const baseWallet = CustomWallet.fromPhrase(
+      undefined,
+      provider,
+      KEYSTORE.default.mnemonic.basePath,
+    );
     for (let index = 0; index < TEST.accountNumber; index++) {
       accounts.push(
         new CustomWallet(baseWallet.deriveChild(index).privateKey, provider),
       );
     }
     // set specific roles
-    admin = accounts[0];
-    defaultUser = accounts[1];
-    console.log(admin.address);
-    console.log((await HRE.ethers.provider.getSigner(0)).address);
+    [admin, defaultUser] = accounts;
   });
 
   describe("Deployment and Initialization", () => {
