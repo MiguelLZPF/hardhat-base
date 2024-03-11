@@ -1,3 +1,4 @@
+> :warning: **This repository is now deprecated in favor of [foundry-base](https://github.com/MiguelLZPF/foundry-base)**
 # 1. Hardhat Off-Chain Deployments Base - HHoffCDB
 
 Before running anything, make sure you run `npm install`.
